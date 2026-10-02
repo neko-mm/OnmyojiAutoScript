@@ -9,6 +9,15 @@
     "description": "进入庭院事务标志"
   },
   {
+    "itemName": "enter_courtyard_affairs_fox",
+    "imageName": "dt_enter_courtyard_affairs_fox.png",
+    "roiFront": "478,451,25,30",
+    "roiBack": "450,430,80,90",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "狐栖归处皮肤的庭院事务入口"
+  },
+  {
     "itemName": "check_courtyard_affairs",
     "imageName": "dt_check_courtyard_affairs.png",
     "roiFront": "254,40,196,57",

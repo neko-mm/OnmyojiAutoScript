@@ -486,7 +486,8 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         timeout_timer = Timer(3).start()
         while not timeout_timer.reached():
             self.screenshot()
-            if self.appear(self.I_ENTER_COURTYARD_AFFAIRS, interval=1.2):
+            if (self.appear(self.I_ENTER_COURTYARD_AFFAIRS, interval=1.2)
+                    or self.appear(self.I_ENTER_COURTYARD_AFFAIRS_FOX, interval=1.2)):
                 self.goto_page(page_courtyard_affairs)
                 timeout_timer.reset()
                 break
@@ -555,4 +556,3 @@ if __name__ == '__main__':
     t = ScriptTask(c, d)
 
     t.run_guild_donate()
-

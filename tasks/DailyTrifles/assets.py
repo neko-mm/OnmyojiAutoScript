@@ -20,6 +20,8 @@ class DailyTriflesAssets:
 	# Image Rule Assets
 	# 进入庭院事务标志 
 	I_ENTER_COURTYARD_AFFAIRS = RuleImage(roi_front=(990,372,25,30), roi_back=(696,349,343,231), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_enter_courtyard_affairs.png")
+	# 狐栖归处皮肤的庭院事务入口
+	I_ENTER_COURTYARD_AFFAIRS_FOX = RuleImage(roi_front=(478,451,25,30), roi_back=(450,430,80,90), threshold=0.9, method="Template matching", file="./tasks/DailyTrifles/dt/dt_enter_courtyard_affairs_fox.png")
 	# 庭院事务页面标志 
 	I_CHECK_COURTYARD_AFFAIRS = RuleImage(roi_front=(254,40,196,57), roi_back=(134,0,415,180), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_check_courtyard_affairs.png")
 	# 一键完成标志 
@@ -174,5 +176,3 @@ class DailyTriflesAssets:
 	O_SELECT_SM3 = RuleOcr(roi=(26,304,45,38), area=(26,304,45,38), mode="Single", method="Default", keyword="", name="select_sm3")
 	# description 
 	O_SELECT_SM4 = RuleOcr(roi=(26,397,45,38), area=(26,397,45,38), mode="Single", method="Default", keyword="", name="select_sm4")
-
-

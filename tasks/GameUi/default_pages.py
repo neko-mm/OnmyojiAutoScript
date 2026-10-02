@@ -60,8 +60,9 @@ def handle_login_page(task) -> bool:
 page_login = Page(SwitchAccountAssets.I_CHECK_LOGIN_FORM, category="global")
 page_login.add_enter_success_hooks(handle_login_page)
 
-# 庭院主页(此处通过提高阈值来处理部分探索章节会识别成原始庭院的问题, 后续有其他更好方法需改善)
-page_main = Page(GameUiAssets.I_CHECK_MAIN, category="global")
+# 庭院主页：狐栖归处皮肤的背景无法匹配旧模板，使用庭院事务入口作为补充标志。
+# 保留旧模板的高阈值，避免部分探索章节被误识别为庭院。
+page_main = Page(any_of(GameUiAssets.I_CHECK_MAIN, DailyTriflesAssets.I_ENTER_COURTYARD_AFFAIRS_FOX), category="global")
 page_main.add_enter_success_hooks(
     GameUiAssets.I_AD_CLOSE_RED, GlobalGameAssets.I_UI_BACK_RED, RestartAssets.I_CANCEL_BATTLE,
     conditional_action(RestartAssets.I_LOGIN_COURTYARD, RestartAssets.C_LOGIN_SCROLL_CLOSE_AREA),
@@ -98,7 +99,13 @@ page_daily.connect(page_main, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_daily
 page_main.connect(page_daily, GameUiAssets.I_MAIN_GOTO_DAILY, key="page_main->page_daily")
 
 page_courtyard_affairs = Page(DailyTriflesAssets.I_CHECK_COURTYARD_AFFAIRS, category="global")
-page_main.connect(page_courtyard_affairs, DailyTriflesAssets.I_ENTER_COURTYARD_AFFAIRS, key="page_main->page_courtyard_affairs")
+page_main.connect(
+    page_courtyard_affairs,
+    lambda task: DailyTriflesAssets.I_ENTER_COURTYARD_AFFAIRS
+    if task.appear(DailyTriflesAssets.I_ENTER_COURTYARD_AFFAIRS)
+    else DailyTriflesAssets.I_ENTER_COURTYARD_AFFAIRS_FOX,
+    key="page_main->page_courtyard_affairs",
+)
 page_courtyard_affairs.connect(page_main, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_courtyard_affairs->page_main")
 page_courtyard_affairs.add_leave_failure_hooks(GlobalGameAssets.I_UI_CANCEL_SAMLL, GlobalGameAssets.I_UI_BACK_RED,
                                                ActivityShikigamiAssets.I_SKIP_BUTTON, GlobalGameAssets.I_UI_BACK_YELLOW)
