@@ -115,16 +115,16 @@ class ScriptTask(GameUi, HyaSlave, SwitchOnmyoji):
 
         while 1:
             if hya_count >= self.limit_count:
-                logger.info('Hyakkiyakou count limit out')
+                logger.info('百鬼夜行已达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('Hyakkiyakou time limit out')
+                logger.info('百鬼夜行已达到运行时长上限')
                 break
 
             self.one()
             hya_count += 1
-            logger.info(f'count: {hya_count}/{self.limit_count}')
-            logger.info(f'time: {(datetime.now() - self.start_time).total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
+            logger.info(f'百鬼夜行次数：{hya_count}/{self.limit_count}')
+            logger.info(f'已运行 {(datetime.now() - self.start_time).total_seconds():.1f}/{self.limit_time.total_seconds()} 秒')
 
         while 1:
             self.screenshot()

@@ -81,7 +81,7 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
                 current, current_success, total = self.O_TIMES.ocr(self.device.image)
                 if current_success < 0 or current_success > 2:
                     continue
-                logger.info(f'current: {current}, current_success: {current_success}, total: {total}')
+                logger.info(f'真蛇进度：当前 {current}，已成功 {current_success}，总计 {total}')
                 conf.current_success = current_success
                 self.config.save()
                 continue

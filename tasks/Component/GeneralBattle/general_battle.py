@@ -736,11 +736,11 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         """
         if 0 < config.max_continuous <= context.continuous_count:
             return BattleAction.EXIT_WIN if context.is_win else BattleAction.EXIT_LOSE
-        logger.hr("General battle start", 2)
+        logger.hr("开始战斗", 2)
         next_count = context.continuous_count + 1
         self.current_count += 1
-        logger.info(f"Current count: {self.current_count}")
-        logger.info(f"Continue battle round: {next_count}")
+        logger.info(f"已进行 {self.current_count} 场战斗")
+        logger.info(f"开始第 {next_count} 轮连续战斗")
         self.device.click_record_clear()
         self._reset_round_context(context, config, continuous_count=next_count)
         return BattleAction.CONTINUE
@@ -756,10 +756,10 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             bool | None: `True/False` 表示战斗结束结果，`None` 表示继续主循环。
         """
         if action == BattleAction.EXIT_WIN:
-            logger.info("Battle result: Win")
+            logger.info("战斗结果：胜利")
             return True
         if action == BattleAction.EXIT_LOSE:
-            logger.info("Battle result: Lose")
+            logger.info("战斗结果：失败")
             return False
         if action == BattleAction.QUICK_EXIT:
             self.device.screenshot_interval_set()
@@ -809,14 +809,14 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         Returns:
             bool: `True` 表示本轮战斗获胜，`False` 表示失败或主动退出。
         """
-        logger.hr("General battle start", 2)
+        logger.hr("开始战斗", 2)
         if config is None:
             config = GeneralBattleConfig()
         if not self._custom_pages_registered:
             self._register_custom_pages()
             self._custom_pages_registered = True
         self.current_count += 1
-        logger.info(f"Current count: {self.current_count}")
+        logger.info(f"已进行 {self.current_count} 场战斗")
         self.device.stuck_record_add("BATTLE_STATUS_S")
         self.device.click_record_clear()
         context = self._build_context(config, buff, battle_key)
@@ -872,7 +872,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             if self.appear_then_click(self.I_EXIT, interval=6):
                 continue
         self.ui_click_until_disappear(self.I_EXIT_ENSURE, interval=0.8)
-        logger.info('Exit battle success')
+        logger.info('已退出战斗')
         return True
 
     def green_mark(self, enable: bool = False, mark_mode: GreenMarkType = GreenMarkType.GREEN_MAIN,

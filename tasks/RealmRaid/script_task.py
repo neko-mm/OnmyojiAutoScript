@@ -285,8 +285,8 @@ class ScriptTask(GeneralBattle, GameUi, SwitchSoul, RealmRaidAssets):
             return False
         self.init_tickets = cu if self.init_tickets == -1 else self.init_tickets
         if self.init_tickets - cu >= self.config.realm_raid.raid_config.number_attack:  # 检查挑战次数
-            logger.info(f'Current count {self.init_tickets - cu}, '
-                        f'max count {self.config.realm_raid.raid_config.number_attack}')
+            logger.info(f'结界突破已挑战 {self.init_tickets - cu}/'
+                        f'{self.config.realm_raid.raid_config.number_attack} 次')
             return False
         return True
 

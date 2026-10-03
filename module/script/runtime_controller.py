@@ -187,7 +187,7 @@ class ScriptRuntimeController:
             return
 
         if online is False:
-            logger.info('Target emulator is already offline, keep waiting without starting it')
+            logger.info('模拟器已关闭，继续等待下个任务')
             self.emulator_down = True
 
     def _ensure_emulator_running(self, reason: str | None = None) -> None:
@@ -220,7 +220,7 @@ class ScriptRuntimeController:
         """
         logger.info(reason)
         if not self.script.run('Restart'):
-            logger.warning('Restart task failed during runtime recovery')
+            logger.warning('重启任务未能恢复运行环境')
             return ScriptRuntimeDecision.FAILED
 
         decision = self._consume_server_update_delay_outcome('Restart recovery')
@@ -231,10 +231,10 @@ class ScriptRuntimeController:
         self.server_update_wait_log_until = None
 
         if not self.device.app_is_running():
-            logger.warning('Game is still not running after Restart recovery')
+            logger.warning('重启后游戏仍未运行')
             return ScriptRuntimeDecision.FAILED
 
-        logger.info('Restart recovery completed, reschedule before continuing')
+        logger.info('游戏运行环境已恢复，重新安排任务')
         return ScriptRuntimeDecision.RESCHEDULE
 
     def _ensure_game_running(
@@ -263,13 +263,13 @@ class ScriptRuntimeController:
             return self._run_restart_recovery('Game is not running, recover it via Restart')
 
         if require_main:
-            logger.info('Ensure game stays at main page during wait')
+            logger.info('等待期间保持在庭院主界面')
             if self.script.run('GotoMain'):
                 return ScriptRuntimeDecision.READY
             decision = self._consume_server_update_delay_outcome('GotoMain preparation')
             if decision is not None:
                 return decision
-            logger.warning('GotoMain failed while preparing idle state')
+            logger.warning('等待前返回庭院主界面失败')
             return ScriptRuntimeDecision.FAILED
 
         return ScriptRuntimeDecision.READY
@@ -280,11 +280,11 @@ class ScriptRuntimeController:
         """
         self._ensure_emulator_running('Wake emulator before ensuring close_game state')
         if self.device.app_is_running():
-            logger.info('Ensure game is closed during wait')
+            logger.info('等待期间关闭游戏')
             self.device.app_stop()
             return ScriptRuntimeDecision.READY
 
-        logger.info('Game is already closed during wait')
+        logger.info('游戏已关闭，继续等待')
         return ScriptRuntimeDecision.READY
 
     def _prepare_idle_goto_main(self) -> ScriptRuntimeDecision:
@@ -293,7 +293,7 @@ class ScriptRuntimeController:
         停服窗口内改为关闭游戏，避免停留在停服弹窗。
         """
         if self._is_server_update_wait_active():
-            logger.info('Server update active, close game instead of going to main')
+            logger.info('服务器维护期间关闭游戏，暂不返回庭院')
             return self._ensure_game_closed()
         return self._ensure_game_running(require_main=True, allow_server_update_skip=True)
 
@@ -367,13 +367,13 @@ class ScriptRuntimeController:
             now = datetime.now()
             wake_time = next_run - startup_lead if startup_lead > timedelta(0) else next_run
             if wake_time > now:
-                logger.info(f'Wait before wake emulator: {wake_time.strftime("%Y-%m-%d %H:%M:%S")}')
+                logger.info(f'等待至 {wake_time.strftime("%Y-%m-%d %H:%M:%S")} 再启动模拟器')
                 if not self.script.wait_until(wake_time):
                     logger.info('Idle wait was interrupted before emulator preheat, reschedule scheduler')
                     return ScriptRuntimeDecision.RESCHEDULE
                 continue
 
-            logger.info('Wake emulator before next task')
+            logger.info('下个任务即将开始，启动模拟器')
             self._ensure_emulator_running()
             if on_wake is not None:
                 decision = on_wake()
@@ -401,14 +401,14 @@ class ScriptRuntimeController:
         close_game_limit = self._time_to_timedelta(close_game_limit_time)
 
         if close_game_limit <= timedelta(0):
-            logger.info('Close game during wait immediately (close_game_limit_time <= 0)')
+            logger.info('等待期间关闭游戏')
             return True
 
         if next_run > datetime.now() + close_game_limit:
-            logger.info('Close game during wait (next task exceeds close_game_limit_time)')
+            logger.info('距离下个任务较久，等待期间关闭游戏')
             return True
 
-        logger.info('Keep game running during short wait (next task within close_game_limit_time)')
+        logger.info('距离下个任务较近，保持游戏运行')
         return False
 
     def _wait_close_game(self, next_run: datetime) -> ScriptRuntimeDecision:
@@ -514,11 +514,11 @@ class ScriptRuntimeController:
         close_emulator_limit = self._time_to_timedelta(close_emulator_limit_time)
 
         if self.emulator_down:
-            logger.info('Emulator is down, keep close_emulator strategy and wait with preheat')
+            logger.info('模拟器已关闭，等待下个任务前再启动')
             return self._wait_until_with_emulator_preheat(next_run, on_wake=on_wake)
 
         if close_emulator_limit > timedelta(0) and next_run > datetime.now() + close_emulator_limit:
-            logger.info('Close emulator during wait')
+            logger.info('等待期间关闭模拟器')
             self.device.emulator_stop()
             self.emulator_down = True
             return self._wait_until_with_emulator_preheat(next_run, on_wake=on_wake)
@@ -536,10 +536,10 @@ class ScriptRuntimeController:
             ScriptRuntimeDecision: 当前等待分支的处理结果。
         """
         if self.emulator_down:
-            logger.info('Stay_there during wait (emulator is down, with preheat)')
+            logger.info('模拟器已关闭，保持当前状态等待')
             return self._wait_until_with_emulator_preheat(next_run)
 
-        logger.info('Stay_there (no action) during wait')
+        logger.info('保持当前状态等待下个任务')
         self.device.release_during_wait()
         if not self.script.wait_until(next_run):
             logger.info('Idle stay_there wait was interrupted by config reload, reschedule scheduler')

@@ -105,9 +105,9 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             self.pre_battle_lose_cnt = self.battle_lose_count
             self.battle_lose_count += 1
         task_run_time_seconds = timedelta(seconds=int((datetime.now() - self.start_time).total_seconds()))
-        logger.info(f'battle result: {battle_ret}')
-        logger.info(f'battle count:{self.current_count} | win:{self.battle_win_count} failure:{self.battle_lose_count}')
-        logger.info(f'battle time: {task_run_time_seconds} / {self.limit_time}')
+        logger.info(f'斗技结果：{"胜利" if battle_ret else "失败"}')
+        logger.info(f'斗技场次：{self.current_count}，胜 {self.battle_win_count}，负 {self.battle_lose_count}')
+        logger.info(f'已运行 {task_run_time_seconds} / {self.limit_time}')
         self.goto_page(page_duel)
 
     def enter_battle(self):
@@ -333,4 +333,3 @@ if __name__ == '__main__':
     t = ScriptTask(c, d)
 
     t.run()
-

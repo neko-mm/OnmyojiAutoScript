@@ -296,9 +296,9 @@ class ScriptTask(GameUi, WeeklyTriflesAssets):
             selected_10 = min(abs(x_10 - x_check), abs(x_50 - x_check)) == abs(
                 x_10 - x_check
             )
-            logger.info(f'Current selected {"10" if selected_10 else "50"} amulet')
+            logger.info(f'当前选择每次召唤 {"10" if selected_10 else "50"} 张破碎符咒')
             count += 10 if selected_10 else 50
-            logger.info(f'Broken amulet:Count[{count}], Remain[{real_num}]')
+            logger.info(f'破碎符咒已召唤 {count} 张，剩余 {real_num} 张')
             # 一次50票不超过限制且当前选择的是10票则切换50票
             if count + 50 < dest_num and selected_10:
                 logger.hr('Switch to 50 amulet')

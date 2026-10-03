@@ -76,10 +76,10 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         self.check_and_lock_team()
         while True:
             if self.limit_time is not None and self.limit_time + self.start_time < datetime.now():
-                logger.info("Time out")
+                logger.info('英杰试炼已达到运行时长上限')
                 break
             if self.current_count >= self.limit_count:
-                logger.info("Count out")
+                logger.info(f'英杰试炼已完成 {self.current_count}/{self.limit_count} 次，达到次数上限')
                 break
             self.goto_page(self.page_hero_mode)
             if not self.can_run(self.conf.herotest.layer):
@@ -87,7 +87,7 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
             if not self.enter_battle():
                 break
             if self.run_general_battle(config=self.conf.general_battle):
-                logger.info("General battle success")
+                logger.info('英杰试炼战斗胜利')
         self.close_exp_buff()
         self.set_next_run(task="HeroTest", success=self.success)
         raise TaskEnd

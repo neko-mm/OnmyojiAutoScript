@@ -24,6 +24,7 @@ from module.notify.notify import Notifier
 
 from module.exception import RequestHumanTakeover, ScriptError
 from module.logger import logger
+from module.server.i18n import I18n
 
 
 class Function:
@@ -223,7 +224,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         self.update_scheduler()
 
         if self.pending_task:
-            logger.info(f"Pending tasks: {[f.command for f in self.pending_task]}")
+            logger.info(f"待运行任务：{', '.join(I18n.trans_zh_cn(f.command) for f in self.pending_task)}")
             task = self.pending_task[0]
             self.task = task
             logger.attr("Task", task)
@@ -231,14 +232,15 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         # 哪怕是没有任务，也要返回一个任务，这样才能保证调度器正常运行
         if self.waiting_task:
-            logger.info("No task pending")
+            logger.info("当前没有待运行任务，等待下次执行")
             task = copy.deepcopy(self.waiting_task[0])
             # task.next_run = (task.next_run + self.hoarding).replace(microsecond=0)
+            logger.info(f'下个任务：{I18n.trans_zh_cn(task.command)}，计划 {task.next_run} 执行')
             logger.attr("Task", task)
             return task
         else:
-            logger.critical("No task waiting or pending")
-            logger.critical("Please enable at least one task")
+            logger.critical("没有待运行或等待中的任务")
+            logger.critical("请至少启用一个任务")
             raise RequestHumanTakeover
 
     def get_schedule_data(self) -> dict[str, dict]:
@@ -279,7 +281,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
 
         task_enable = self.model.deep_get(self.model, keys=f'{task}.scheduler.enable')
         if force_call or task_enable:
-            logger.info(f"Task call: {task}")
+            logger.info(f'已安排任务：{I18n.trans_zh_cn(task)}')
             next_run = datetime.now().replace(
                 microsecond=0
             )
@@ -287,7 +289,7 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
             self.save()
             return True
         else:
-            logger.info(f"Task call: {task} (skipped because disabled by user)")
+            logger.info(f'任务 {I18n.trans_zh_cn(task)} 未启用，跳过安排')
             return False
 
     def task_delay(self, task: str, start_time: datetime = None,

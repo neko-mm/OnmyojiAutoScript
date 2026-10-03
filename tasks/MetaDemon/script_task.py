@@ -137,9 +137,9 @@ class ScriptTask(GeneralBattle, SwitchSoul, GameUi, MetaDemonAssets):
                 time.sleep(random.uniform(3, 5))
                 continue
         total_run_time = datetime.now() - self.start_time
-        logger.info(f'battle win: {win}')
-        logger.info(f'battle count: {self.total_count}/{self.limit_count}')
-        logger.info(f'time count: {total_run_time.total_seconds():.1f}s/{self.limit_time.total_seconds()}s')
+        logger.info(f'战斗结果：{"胜利" if win else "失败"}')
+        logger.info(f'超鬼王战斗次数：{self.total_count}/{self.limit_count}')
+        logger.info(f'已运行 {total_run_time.total_seconds():.1f}/{self.limit_time.total_seconds()} 秒')
         return win
 
     def update_global_state(self):

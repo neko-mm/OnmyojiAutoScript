@@ -142,16 +142,16 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             self.screenshot()
             if self.current_count >= self.limit_count:
                 if self.is_in_room():
-                    logger.info('Orochi count limit out')
+                    logger.info(f'八岐大蛇已完成 {self.current_count}/{self.limit_count} 次，达到次数上限')
                     break
             if datetime.now() - self.start_time >= self.limit_time:
                 if self.is_in_room():
-                    logger.info('Orochi time limit out')
+                    logger.info('八岐大蛇已达到运行时长上限')
                     break
             # 如果没有进入房间那就不需要后面的邀请
             if not self.is_in_room():
                 if self.is_room_dead():
-                    logger.warning('Orochi task failed')
+                    logger.warning('八岐大蛇任务失败')
                     success = False
                     break
                 continue
@@ -164,13 +164,13 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                     )
                 else:
                     # 邀请失败，退出任务
-                    logger.warning('Invite failed and exit this orochi task')
+                    logger.warning('邀请队友失败，结束八岐大蛇任务')
                     success = False
                     break
             # 第一次会邀请队友
             if is_first:
                 if not self.run_invite(config=self.config.orochi.invite_config, is_first=True):
-                    logger.warning('Invite failed and exit this orochi task')
+                    logger.warning('邀请队友失败，结束八岐大蛇任务')
                     success = False
                     break
                 else:
@@ -202,10 +202,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if self.appear_then_click(self.I_PET_PRESENT, action=self.C_RANDOM_RIGHT, interval=1):
                 continue
             if self.current_count >= self.limit_count:
-                logger.info('Orochi count limit out')
+                logger.info(f'八岐大蛇已完成 {self.current_count}/{self.limit_count} 次，达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('Orochi time limit out')
+                logger.info('八岐大蛇已达到运行时长上限')
                 break
 
             if self.check_then_accept():
@@ -260,10 +260,10 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if not is_in_orochi():
                 continue
             if self.current_count >= self.limit_count:
-                logger.info('Orochi count limit out')
+                logger.info(f'八岐大蛇已完成 {self.current_count}/{self.limit_count} 次，达到次数上限')
                 break
             if datetime.now() - self.start_time >= self.limit_time:
-                logger.info('Orochi time limit out')
+                logger.info('八岐大蛇已达到运行时长上限')
                 break
             # 点击挑战
             while True:
@@ -313,17 +313,17 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
             if self.current_count >= self.limit_count:
                 if self.is_in_room():
-                    logger.info('Orochi count limit out')
+                    logger.info(f'八岐大蛇已完成 {self.current_count}/{self.limit_count} 次，达到次数上限')
                     break
 
             if datetime.now() - self.start_time >= self.limit_time:
                 if self.is_in_room():
-                    logger.info('Orochi time limit out')
+                    logger.info('八岐大蛇已达到运行时长上限')
                     break
 
             if not self.is_in_room():
                 if self.is_room_dead():
-                    logger.warning('Orochi task failed')
+                    logger.warning('八岐大蛇任务失败')
                     success = False
                     break
                 continue
