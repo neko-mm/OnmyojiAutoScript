@@ -16,6 +16,8 @@ from rich.logging import RichHandler
 from rich.rule import Rule
 from typing import Callable, List
 
+from module.log_localization import LocalizedLogFilter, localize_log_text
+
 
 def cleanup_logs(log_dir: str = "./log", keep_days: int = 7):
     """删除 log_dir 下所有早于 keep_days 的文件夹和文件"""
@@ -92,6 +94,8 @@ logging.raiseExceptions = True  # Set True if wanna see encode errors on console
 logger_debug = False
 logger = logging.getLogger('oas')
 logger.setLevel(logging.DEBUG if logger_debug else logging.INFO)
+
+logger.addFilter(LocalizedLogFilter())
 file_formatter = logging.Formatter(
     fmt='%(asctime)s.%(msecs)03d | %(filename)20s:%(lineno)04d | %(levelname)8s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 console_formatter = logging.Formatter(
@@ -452,7 +456,7 @@ def rule(title="", *, characters="─", style="rule.line", end="\n", align="cent
 
 
 def hr(title, level=3):
-    title = str(title).upper()
+    title = localize_log_text(str(title)).upper()
     if level == 1:
         logger.rule(title, characters='═')
         logger.info(title)
