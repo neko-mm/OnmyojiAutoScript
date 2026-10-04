@@ -682,25 +682,25 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         wait_second = wait_time.second + wait_time.minute * 60
         self.timer_wait = Timer(wait_second)
         self.timer_wait.start()
-        logger.info(f'Wait battle {wait_second} seconds')
+        logger.info(f'等待队长开启战斗，最多 {wait_second} 秒')
         success = True
         while 1:
             self.screenshot()
 
             # 如果自己在探索界面或者是庭院，那就是房间已经被销毁了
             if self.appear(GameUiAssets.I_CHECK_MAIN) or self.appear(GameUiAssets.I_CHECK_EXPLORATION):
-                logger.warning('Room destroyed')
+                logger.warning('组队房间已关闭')
                 success = False
                 break
 
             if self.timer_wait.reached():
-                logger.warning('Wait battle time out')
+                logger.warning('等待队长开启战斗超时')
                 success = False
                 break
 
             # 如果队长跑路了，自己变成了队长: 自己也要跑路
             if self.appear(self.I_FIRE) or self.appear(self.I_FIRE_SEA):
-                logger.warning('Leader run away while wait battle and become leader now')
+                logger.warning('队长已离开房间，当前账号变为队长')
                 success = False
                 break
 
@@ -719,7 +719,7 @@ class GeneralInvite(BaseTask, GeneralInviteAssets):
         # 3. 等待时间到没有开始（还是在房间里面）
         # 4. 房间的时间到了被迫提出房间（这个时候来到了探索界面）
         if not success:
-            logger.info('Leave room')
+            logger.info('离开组队房间')
             self.exit_room()
 
         return success

@@ -195,7 +195,7 @@ class Screenshot(Adb, DroidCast, Scrcpy, Window, NemuIpc):
             interval = 0.1
 
         if interval != self._screenshot_interval.limit:
-            logger.info(f'Screenshot interval set to {interval}s')
+            logger.info(f'截图间隔已设为 {interval} 秒')
             self._screenshot_interval.limit = interval
 
     def image_show(self, image=None):

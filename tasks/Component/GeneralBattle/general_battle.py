@@ -513,7 +513,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             self._reset_prepare_click_timer(context)
             return True
         if not context.prepare_click_timer.started():
-            logger.info(f"Lock team enabled, click prepare later")
+            logger.info("已启用锁定队伍，稍后点击准备")
             context.prepare_click_timer.start()
             return False
         return context.prepare_click_timer.reached()
@@ -528,7 +528,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if not self.appear(hand_marker):
             return
 
-        logger.info("Timed inspection hit: recover battle auto mode")
+        logger.info("战斗巡检：恢复自动战斗")
         self.ui_click(hand_marker, auto_marker, interval=0.8)
 
     def _tick_long_battle(self, context: BattleContext) -> None:
@@ -541,7 +541,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
             None: 需要刷新时原地重置底层长等待状态。
         """
         if context.long_refresh_timer.reached():
-            logger.info("Refresh long battle stuck timer")
+            logger.info("已刷新长时间战斗的卡住检测计时")
             self.device.stuck_record_clear()
             self.device.stuck_record_add("BATTLE_STATUS_S")
             context.long_refresh_timer.reset()
@@ -560,7 +560,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if page not in {page_battle_prepare, page_battle}:
             return
         if context.last_page not in {page_battle_prepare, page_battle}:
-            logger.info("Arm battle stuck guard")
+            logger.info("已启用战斗卡住检测")
             if "BATTLE_STATUS_S" not in self.device.detect_record:
                 self.device.stuck_record_add("BATTLE_STATUS_S")
             context.battle_timer.reset()
@@ -586,7 +586,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         if context.last_page not in {page_battle_prepare, page_battle}:
             return
         if context.battle_timer.reached():
-            logger.warning(f"Battle timeout reached: {context.battle_timer.limit}s")
+            logger.warning(f"战斗等待超时：{context.battle_timer.limit} 秒")
             context.quick_exit = True
 
     def _in_settlement_stage(self, context: BattleContext, page: Page | None) -> bool:
@@ -709,7 +709,7 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         """
         # 非连战且设置了退出检测器, 则根据退出检测器检测是否已经退出
         if not config.continuous_battle and exit_matcher is not None and self._evaluate_exit_matcher(exit_matcher):
-            logger.info("Exit matcher hit")
+            logger.info("已识别战斗结束后的目标页面")
             return BattleAction.EXIT_WIN if context.is_win else BattleAction.EXIT_LOSE
         # 上个页面还是战斗中的页面但此时是未知界面, 且奖励计时也未开启, 则认为当前是页面抖动继续战斗(式神助战...)
         if context.last_page is None or (context.last_page in {page_battle_prepare, page_battle} and

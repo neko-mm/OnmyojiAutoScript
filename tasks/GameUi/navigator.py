@@ -27,6 +27,7 @@ from tasks.GameUi.assets import GameUiAssets
 from tasks.GameUi.chess_battle import ChessBattleNavigationMixin
 from tasks.GameUi.common import infer_tasks_category_from_parts, infer_tasks_category_from_path
 from tasks.GameUi.matcher import collect_rule_images
+from tasks.GameUi.log_labels import page_log_label
 from tasks.GameUi.page_definition import Page, Transition, sort_pages_by_priority
 from tasks.GameUi.registry import PageRegistry
 from tasks.GameUi.session import NavigatorSession
@@ -224,7 +225,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
             skip_first_screenshot=True,
         )
         if page is not None:
-            logger.attr("UI", page.name)
+            logger.attr("UI", page_log_label(page.name))
             return page
 
         logger.warning(f"Page detect miss[{context}]: scoped={sorted_categories}")
@@ -252,7 +253,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
         for page in sort_pages_by_priority(indexed_candidates):
             if self.match_page_once(page):
                 self.navigator.current_page = page
-                logger.attr("UI", page.name)
+                logger.attr("UI", page_log_label(page.name))
                 return page
         return None
 
@@ -507,7 +508,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
         source = transition.source
         destination = transition.destination
 
-        logger.info(f"Page switch: {source} -> {destination}")
+        logger.info(f"页面切换：{page_log_label(source.name)} → {page_log_label(destination.name)}")
 
         action_timer = Timer(6.0).start()
         action_done = False
@@ -561,7 +562,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
             self._run_hooks(destination.on_enter_success)
             self._run_hooks(transition.on_enter_success)
             self._mark_page_entered(destination)
-            logger.info(f"Page arrived {destination}")
+            logger.info(f"已到达页面：{page_log_label(destination.name)}")
             return True
 
         self._run_hooks(source.on_leave_failure)
@@ -763,7 +764,7 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
         self._run_enter_success_hooks_if_needed(destination)
         if confirm_wait > 0:
             Timer(confirm_wait, count=int(confirm_wait // 0.5)).start().wait()
-        logger.attr(f'{time.time() - start_time:.1f}s', f"Page arrived {destination}")
+        logger.attr(f'{time.time() - start_time:.1f}s', f"已到达页面：{page_log_label(destination.name)}")
         return True
 
     def goto_page(self, destination: Page, confirm_wait: float = 0, skip_first_screenshot: bool = True,
@@ -850,8 +851,9 @@ class GameUi(ChessBattleNavigationMixin, BaseTask, GameUiAssets):
             if path_signature != last_progress_signature:
                 progress_timer.reset()
                 last_progress_signature = path_signature
-            logger.info(f"Current page: {current}. Following path:")
-            logger.info(" -> ".join([current.name, *[transition.destination.name for transition in path]]))
+            logger.info(f"当前页面：{page_log_label(current.name)}，准备按以下路径切换：")
+            logger.info(" → ".join([page_log_label(current.name),
+                                   *[page_log_label(transition.destination.name) for transition in path]]))
 
             advanced = True
             for transition in path:

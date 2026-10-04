@@ -86,7 +86,7 @@ def _get_timed_battle_inspections(self, config, battle_key):
 
 ### 运行时行为
 
-- `exit_matcher` 命中时会打印 `Exit matcher hit, battle confirmed ended`。
+- `exit_matcher` 命中时会打印“已识别战斗结束后的目标页面”。
 - 命中后直接返回最近一次结算得到的胜负，不会改写 `context.is_win`。
 - `exit_matcher` 未命中时不会有额外副作用，仍按旧逻辑等待 2 秒兜底。
 

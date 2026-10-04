@@ -160,7 +160,7 @@ class Device(Platform, Screenshot, Control, AppControl):
         :return:
         """
         self.detect_record.add(str(button))
-        logger.info(f'Add stuck record: {button}')
+        logger.info(f'已记录卡住检测标记：{button}')
 
     def stuck_record_clear(self):
         self.detect_record = set()
