@@ -18,6 +18,15 @@
     "description": "狐栖归处皮肤的庭院事务入口"
   },
   {
+    "itemName": "fox_daily_sign",
+    "imageName": "dt_fox_daily_sign.png",
+    "roiFront": "411,496,28,32",
+    "roiBack": "394,475,70,72",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "狐栖归处皮肤的每日一签入口"
+  },
+  {
     "itemName": "check_courtyard_affairs",
     "imageName": "dt_check_courtyard_affairs.png",
     "roiFront": "254,40,196,57",

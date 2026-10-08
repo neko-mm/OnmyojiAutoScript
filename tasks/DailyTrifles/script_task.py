@@ -484,10 +484,11 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         logger.hr('庭院事务', 2)
         self.goto_page(page_main)
         timeout_timer = Timer(3).start()
+        fox_courtyard = False
         while not timeout_timer.reached():
             self.screenshot()
-            if (self.appear(self.I_ENTER_COURTYARD_AFFAIRS, interval=1.2)
-                    or self.appear(self.I_ENTER_COURTYARD_AFFAIRS_FOX, interval=1.2)):
+            fox_courtyard = self.appear(self.I_ENTER_COURTYARD_AFFAIRS_FOX, interval=1.2)
+            if fox_courtyard or self.appear(self.I_ENTER_COURTYARD_AFFAIRS, interval=1.2):
                 self.goto_page(page_courtyard_affairs)
                 timeout_timer.reset()
                 break
@@ -502,6 +503,15 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
                 continue
         self.appear_then_click(self.I_ONE_COMPLETE, interval=1)
         self.goto_page(page_main)
+        if fox_courtyard:
+            self.screenshot()
+            if self.appear_then_click(self.I_FOX_DAILY_SIGN, interval=1):
+                if self.wait_until_appear(self.I_UI_BACK_RED, wait_time=5):
+                    self.appear_then_click(self.I_UI_BACK_RED, interval=1)
+                    logger.info('已处理每日一签')
+                else:
+                    logger.warning('未检测到每日一签弹窗')
+                self.goto_page(page_main)
         self.config.daily_trifles.done_record.courtyard_affairs_dt = datetime.now()
 
     def run_pickup_email(self):
