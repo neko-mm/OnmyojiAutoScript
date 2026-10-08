@@ -5,7 +5,7 @@ from time import sleep
 from datetime import time, datetime, timedelta
 
 from module.logger import logger
-from module.exception import TaskEnd
+from module.exception import GameTooManyClickError, TaskEnd
 from module.base.timer import Timer
 
 from tasks.GameUi.game_ui import GameUi
@@ -95,33 +95,37 @@ class ScriptTask(GameUi, DelegationAssets):
     def check_reward(self):
         check_timer = Timer(3)
         check_timer.start()
+        last_button = None
+        click_count = 0
         while 1:
             self.screenshot()
-            if self.appear_then_click(self.I_REWARDS_GET, interval=1):
+            clicked = None
+            for button in (self.I_REWARDS_GET, self.I_REWARDS_CHAT,
+                           self.I_CHAT_1, self.I_CHAT_2,
+                           self.I_REWARDS_DONE, self.I_REWARDS_FALSE):
+                if self.appear_then_click(button, interval=1):
+                    clicked = button
+                    break
+            if clicked is not None:
+                if last_button is not None and last_button != clicked:
+                    self.device.click_record_remove(last_button)
+                last_button = clicked
+                click_count += 1
+                if click_count >= 40:
+                    raise GameTooManyClickError('Delegation reward: too many clicks')
                 check_timer.reset()
                 continue
-            if self.appear_then_click(self.I_REWARDS_CHAT, interval=1):
-                check_timer.reset()
-                continue
-            if self.appear_then_click(self.I_CHAT_1, interval=1):
-                check_timer.reset()
-                continue
-            if self.appear_then_click(self.I_CHAT_2, interval=1):
-                check_timer.reset()
-                continue
-            if self.appear_then_click(self.I_REWARDS_DONE, interval=1):
-                check_timer.reset()
-                continue
-            if self.appear_then_click(self.I_REWARDS_FALSE, interval=1):
-                check_timer.reset()
-                continue
-
-
             if not self.appear(self.I_REWARDS_MIN):
                 continue
             if check_timer.reached():
                 break
             if self.ocr_appear_click(self.O_D_DONE, interval=1):
+                if last_button is not None and last_button != self.O_D_DONE:
+                    self.device.click_record_remove(last_button)
+                last_button = self.O_D_DONE
+                click_count += 1
+                if click_count >= 40:
+                    raise GameTooManyClickError('Delegation reward: too many clicks')
                 check_timer.reset()
                 continue
 
@@ -136,7 +140,6 @@ if __name__ == '__main__':
 
     # t.delegate_one('弥助的画')
     t.run()
-
 
 
 
