@@ -501,7 +501,20 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
                 break
             if self.appear_then_click(self.I_ENTER_DAILY, interval=1):
                 continue
-        self.appear_then_click(self.I_ONE_COMPLETE, interval=1)
+        complete_timer = Timer(8).start()
+        clicked = False
+        completed = False
+        while not complete_timer.reached():
+            self.screenshot()
+            if clicked and not self.appear(self.I_ONE_COMPLETE):
+                completed = True
+                break
+            if self.appear_then_click(self.I_ONE_COMPLETE, interval=1):
+                clicked = True
+        if not completed:
+            logger.warning('庭院事务一键完成未生效，本次不记录为已完成')
+            self.goto_page(page_main)
+            return
         self.goto_page(page_main)
         if fox_courtyard:
             self.screenshot()
