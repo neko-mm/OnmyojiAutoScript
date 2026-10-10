@@ -85,6 +85,11 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
             }
             return match[team]
 
+        confirm_assets = (self.I_SOU_SWITCH_SURE_NEW, self.I_SOU_SWITCH_SURE)
+
+        def get_confirm_asset():
+            return next((asset for asset in confirm_assets if self.appear(asset)), None)
+
         # 滑动至分组最上层(分組過多, 导致第一个分组显示不全)
         cur_text = ""
         while 1:
@@ -121,19 +126,22 @@ class SwitchSoul(BaseTask, SwitchSoulAssets):
         for i in range(3):
             sleep(0.8)
             self.screenshot()
-            if self.appear(self.I_SOU_SWITCH_SURE):
+            confirm_asset = get_confirm_asset()
+            if confirm_asset:
                 while 1:
-                    self.click(self.I_SOU_SWITCH_SURE, 3)
+                    self.click(confirm_asset, 3)
                     self.screenshot()
                     if self.appear_then_click(self.I_CHECK_BLOCK, 3):
                         continue
-                    if not self.appear(self.I_SOU_SWITCH_SURE):
+                    confirm_asset = get_confirm_asset()
+                    if not confirm_asset:
                         break
                 continue
             if not self.appear_then_click(target_team, interval=3):
                 logger.warning(f'Click team {team} failed in group {group}')
         # 兜底若还出现确认按钮则点击
-        self.ui_click_until_disappear(self.I_SOU_SWITCH_SURE)
+        for confirm_asset in confirm_assets:
+            self.ui_click_until_disappear(confirm_asset)
         logger.info(f'Switch soul_one group {group} team {team}')
 
     def switch_souls(self, target: tuple or list[tuple]) -> None:

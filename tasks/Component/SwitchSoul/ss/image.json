@@ -63,6 +63,15 @@
     "description": "description"
   },
   {
+    "itemName": "sou_switch_sure_new",
+    "imageName": "ss_sou_switch_sure_new.png",
+    "roiFront": "667,408,174,60",
+    "roiBack": "662,403,184,70",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "新版预设御魂确认按钮"
+  },
+  {
     "itemName": "sou_check_in",
     "imageName": "ss_sou_check_in.png",
     "roiFront": "269,69,50,49",
