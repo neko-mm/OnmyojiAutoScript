@@ -325,9 +325,9 @@
   },
   {
     "itemName": "gi_cancel",
-    "imageName": "gi_gi_cancel.png",
-    "roiFront": "438,407,171,55",
-    "roiBack": "438,407,171,55",
+    "imageName": "gi_cancel.png",
+    "roiFront": "438,408,174,60",
+    "roiBack": "432,403,186,70",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "description"
@@ -335,8 +335,8 @@
   {
     "itemName": "gi_sure",
     "imageName": "gi_gi_sure.png",
-    "roiFront": "670,402,175,60",
-    "roiBack": "670,402,175,60",
+    "roiFront": "667,408,174,60",
+    "roiBack": "662,403,184,70",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "队长邀请 确定"
