@@ -12,6 +12,7 @@ from tasks.GameUi.page import (
     page_reward,
     page_battle_result,
     any_of,
+    all_of,
 )
 from tasks.GlobalGame.assets import GlobalGameAssets
 
@@ -57,7 +58,10 @@ else:
     )
 
 # 门票爬塔页面
-page_act_pass = Page(ActivityShikigamiAssets.I_CLIMB_MODE_PASS)
+page_act_pass = Page(all_of(
+    ActivityShikigamiAssets.I_CLIMB_MODE_PASS,
+    ActivityShikigamiAssets.I_ACT_FIRE,
+))
 # 存在特殊活动界面
 if special_act_Flag:
     page_act_pass.connect(

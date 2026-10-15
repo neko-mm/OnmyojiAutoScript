@@ -4,6 +4,7 @@ from tasks.ActivityShikigami.base_act import BaseAct
 import tasks.ActivityShikigami.page as pages
 from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
 from tasks.Component.GeneralBattle.general_battle import ExitMatcher
+from tasks.GameUi.page import all_of
 
 
 class NormalClimbAct(BaseAct):
@@ -37,7 +38,10 @@ class NormalClimbAct(BaseAct):
         # 体力爬塔进入是门票则切换
         page_act_ap.add_enter_failure_hooks(
             pages.conditional_action(
-                condition=ActivityShikigamiAssets.I_CLIMB_MODE_PASS,
+                condition=all_of(
+                    ActivityShikigamiAssets.I_CLIMB_MODE_PASS,
+                    ActivityShikigamiAssets.I_ACT_FIRE,
+                ),
                 action=ActivityShikigamiAssets.I_CLIMB_MODE_SWITCH,
             )
         )

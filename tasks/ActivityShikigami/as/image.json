@@ -20,8 +20,8 @@
   {
     "itemName": "climb_mode_pass",
     "imageName": "as_climb_mode_pass.png",
-    "roiFront": "1141,544,21,21",
-    "roiBack": "1118,510,49,105",
+    "roiFront": "1068,16,38,50",
+    "roiBack": "1068,16,38,50",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "活动爬塔标志"
@@ -74,8 +74,8 @@
   {
     "itemName": "act_fire",
     "imageName": "as_act_fire.png",
-    "roiFront": "1132,602,84,45",
-    "roiBack": "1080,530,192,190",
+    "roiFront": "1137,591,82,45",
+    "roiBack": "1137,591,82,45",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "活动通用挑战图标"

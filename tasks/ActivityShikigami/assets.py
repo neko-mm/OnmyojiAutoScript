@@ -29,7 +29,7 @@ class ActivityShikigamiAssets:
 	# 还未上锁图片 
 	I_UNLOCK = RuleImage(roi_front=(897,646,28,25), roi_back=(686,610,313,92), threshold=0.7, method="Template matching", file="./tasks/ActivityShikigami/as/as_unlock.png")
 	# 活动爬塔标志 
-	I_CLIMB_MODE_PASS = RuleImage(roi_front=(1141,544,21,21), roi_back=(1118,510,49,105), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_climb_mode_pass.png")
+	I_CLIMB_MODE_PASS = RuleImage(roi_front=(1068,16,38,50), roi_back=(1068,16,38,50), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_climb_mode_pass.png")
 	# 体力爬塔标志 
 	I_CLIMB_MODE_AP = RuleImage(roi_front=(1091,543,24,25), roi_back=(1055,495,202,219), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_climb_mode_ap.png")
 	# 切换按键 
@@ -41,7 +41,7 @@ class ActivityShikigamiAssets:
 	# 体力爬塔阵容锁定 
 	I_AP_LOCK = RuleImage(roi_front=(798,656,27,26), roi_back=(686,610,313,92), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_ap_lock.png")
 	# 活动通用挑战图标 
-	I_ACT_FIRE = RuleImage(roi_front=(1132,602,84,45), roi_back=(1080,530,192,190), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_act_fire.png")
+	I_ACT_FIRE = RuleImage(roi_front=(1137,591,82,45), roi_back=(1137,591,82,45), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_act_fire.png")
 	# boss挑战标志 
 	I_AS_BOSS_FIRE = RuleImage(roi_front=(1130,590,92,47), roi_back=(1080,530,192,190), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_as_boss_fire.png")
 
@@ -77,7 +77,7 @@ class ActivityShikigamiAssets:
 	# 体力的数量检测 
 	O_REMAIN_AP = RuleOcr(roi=(545,18,105,29), area=(545,18,105,29), mode="DigitCounter", method="Default", keyword="", name="remain_ap")
 	# 活动体力的剩余检测 
-	O_REMAIN_PASS = RuleOcr(roi=(756,16,88,31), area=(756,16,88,31), mode="DigitCounter", method="Default", keyword="", name="remain_pass")
+	O_REMAIN_PASS = RuleOcr(roi=(1143,17,69,37), area=(1143,17,69,37), mode="DigitCounter", method="Default", keyword="", name="remain_pass")
 	# 还有多少次购买体力的机会 
 	O_REMAIN_BUY = RuleOcr(roi=(808,531,39,42), area=(808,531,39,42), mode="DigitCounter", method="Default", keyword="", name="remain_buy")
 	# 活动票数（没有百分比） 
@@ -103,11 +103,11 @@ class ActivityShikigamiAssets:
 
 	# Image Rule Assets
 	# 庭院进入活动 
-	I_MAIN_GOTO_ACT = RuleImage(roi_front=(1184,211,46,32), roi_back=(1164,134,83,393), threshold=0.7, method="Template matching", file="./tasks/ActivityShikigami/as/as_main_goto_act.png")
+	I_MAIN_GOTO_ACT = RuleImage(roi_front=(1175,208,67,70), roi_back=(1175,208,67,70), threshold=0.7, method="Template matching", file="./tasks/ActivityShikigami/as/as_main_goto_act.png")
 	# 右上跳过按钮 
 	I_SKIP_BUTTON = RuleImage(roi_front=(1159,37,51,22), roi_back=(1141,27,86,43), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_skip_button.png")
 	# 进入主要的战斗界面 
-	I_TO_BATTLE_MAIN = RuleImage(roi_front=(320,176,87,105), roi_back=(282,76,155,370), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_to_battle_main.png")
+	I_TO_BATTLE_MAIN = RuleImage(roi_front=(799,434,158,76), roi_back=(799,434,158,76), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_to_battle_main.png")
 	# 点击进入boss战斗页面 
 	I_TO_BATTLE_BOSS = RuleImage(roi_front=(126,421,79,87), roi_back=(42,353,234,327), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_to_battle_boss.png")
 	# boss界面标志 
@@ -131,6 +131,6 @@ class ActivityShikigamiAssets:
 	# 活动主界面进入体力爬塔标志 
 	I_TO_BATTLE_AP = RuleImage(roi_front=(825,321,39,139), roi_back=(720,255,238,269), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_to_battle_ap.png")
 	# 活动中转界面进入战斗界面 
-	I_MAP_GOTO_BATTLE = RuleImage(roi_front=(71,93,99,36), roi_back=(71,93,99,36), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_map_goto_battle.png")
+	I_MAP_GOTO_BATTLE = RuleImage(roi_front=(73,149,102,35), roi_back=(73,149,102,35), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_map_goto_battle.png")
 
 
