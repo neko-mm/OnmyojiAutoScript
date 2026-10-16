@@ -22,7 +22,7 @@ _EQ_LINE_RE = re.compile(r"^═{15,}\s*$")
 _EQ_TITLE_LINE_RE = re.compile(r"^═{10,}\s+(?P<title>.*?)\s+═{10,}\s*$")
 _TITLE_LINE_RE = re.compile(r"^─{10,}\s*(?P<title>.*?)\s*─{10,}\s*$")
 _TASK_ENDED_RE = re.compile(r"^(?P<title>.+?)\s+task ended\b", re.IGNORECASE)
-_BATTLE_TITLE = "GENERAL BATTLE START"
+_BATTLE_TITLES = {"GENERAL BATTLE START", "开始战斗"}
 _START_TITLE = "START"
 _SIX_REALMS_TITLE = "SIXREALMS"
 _SIX_REALMS_TASK_NAMES = {
@@ -166,7 +166,7 @@ class LogStatsParser:
         matched = _TITLE_LINE_RE.match(line.strip())
         if not matched:
             return False
-        return matched.group("title").strip().upper() == _BATTLE_TITLE
+        return matched.group("title").strip().upper() in _BATTLE_TITLES
 
     @staticmethod
     def _normalize_title(title: str) -> str:

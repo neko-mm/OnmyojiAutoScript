@@ -27,6 +27,7 @@ from typing import Optional
 
 class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, ReplaceShikigami, SwitchSoul, ExplorationAssets):
     fire_monster_type: str = ''
+    boss_count: int = 0
     need_exit: bool = False
     user_status: UserStatus = UserStatus.ALONE
     wait_start_time: datetime = datetime.now()
@@ -51,6 +52,7 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
         return RuleAnimate(self.I_SWIPE_END)
 
     def pre_process(self):
+        self.boss_count = 0
         if self._config.switch_soul_config.enable:
             self.goto_page(pages.page_shikigami_records)
             self.run_switch_soul(self._config.switch_soul_config.switch_group_team)
@@ -284,7 +286,12 @@ class BaseExploration(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, Replace
 
     def check_exit(self, current_page: pages.Page | None) -> bool:
         # True 表示要退出这个任务
-        if self.current_count >= self._config.exploration_config.minions_cnt:
+        boss_target = self._config.exploration_config.boss_cnt
+        if boss_target > 0:
+            if self.boss_count >= boss_target:
+                logger.info(f'已击败 {self.boss_count} 次 Boss，结束探索')
+                return True
+        elif self.current_count >= self._config.exploration_config.minions_cnt:
             logger.info('Minions count is enough, exit')
             return True
         if datetime.now() - self.start_time >= self.limit_time:

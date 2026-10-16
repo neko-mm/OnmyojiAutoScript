@@ -128,7 +128,11 @@ class ScriptTask(BaseExploration):
                 self.device.stuck_record_clear()
 
     def run_on_battle(self):
-        self.run_general_battle(self._config.general_battle_config, exit_matcher=pages.page_exp_main)
+        is_boss = self.fire_monster_type == 'boss'
+        won = self.run_general_battle(self._config.general_battle_config, exit_matcher=pages.page_exp_main)
+        if is_boss and won:
+            self.boss_count += 1
+            logger.info(f'已击败 Boss {self.boss_count} 次')
         self._match_end.refresh()  # 防止同一张图多次打怪导致误以为探索结束
         self.wait_start_time = datetime.now()  # 队友等待时间重置
 

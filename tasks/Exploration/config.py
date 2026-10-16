@@ -88,6 +88,7 @@ class ExplorationConfig(BaseModel):
     user_status: UserStatus = Field(default=UserStatus.ALONE, description='user_status_help_')
     # current_exploration_count: int = Field(title='探索次数', default='7', description='默认探索7次')
     limit_time: Time = Field(default=Time(minute=30), description='limit_time_help')
+    boss_cnt: int = Field(title='Boss次数', default=0, ge=0, description='boss_cnt_help')
     minions_cnt: int = Field(title='战斗次数', default=30, ge=0, description='minions_cnt_help')
 
     exploration_level: ExplorationLevel = Field(title='探索等级', default=ExplorationLevel.EXPLORATION_28,
