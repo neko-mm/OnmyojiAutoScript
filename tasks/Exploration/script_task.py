@@ -54,6 +54,8 @@ class ScriptTask(BaseExploration):
         pages.page_battle_team_exit.connect(pages.page_exp_entrance, self.I_UI_CONFIRM, key="page_battle_team_exit->page_exp_entrance")
         while True:
             self.screenshot()
+            if self.ui_reward_appear_click():
+                continue
             current_page = self.get_current_page()
             if current_page is None:
                 time.sleep(0.5)
