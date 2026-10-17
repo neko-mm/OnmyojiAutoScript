@@ -292,21 +292,19 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
         :return: True 可以运行 or False
         """
         logger.hr(f"Check {self.climb_type} tickets")
-        self.screenshot()
-        remain_times = 0
-        if self.climb_type == "pass":
-            remain_times = self.O_REMAIN_PASS.ocr_digit(self.device.image)
-        if self.climb_type == "ap":
-            remain_times = self.O_REMAIN_AP.ocr_digit(self.device.image)
-        if self.climb_type == "boss":
-            cur, remain_times, total = self.O_REMAIN_BOSS.ocr_digit_counter(
-                self.device.image
-            )
-        if self.climb_type == "ap100":
-            remain_times = self.O_REMAIN_AP100.ocr_digit(self.device.image)
-        # 上一次识别的票的数量和这一次识别的数量差距大于1, 则认为票数量有误, 允许继续挑战
-        if self.pre_tickets_map[self.climb_type] - remain_times > 1:
-            self.pre_tickets_map[self.climb_type] -= 1
-            return True
+
+        def read_remaining():
+            self.screenshot()
+            if self.climb_type == "boss":
+                return self.O_REMAIN_BOSS.ocr_digit_counter(self.device.image)[1]
+            rule = getattr(self, f"O_REMAIN_{self.climb_type.upper()}")
+            return rule.ocr_digit(self.device.image)
+
+        remain_times = read_remaining()
+        # 多倍挑战可能一次消耗多张门票；数量突降或识别为空时重新截图核实。
+        if remain_times <= 0 or self.pre_tickets_map[self.climb_type] - remain_times > 1:
+            remain_times = read_remaining()
         self.pre_tickets_map[self.climb_type] = remain_times
+        if remain_times <= 0:
+            logger.info("连续两次未识别到可用的挑战资源，结束本轮挑战")
         return remain_times > 0

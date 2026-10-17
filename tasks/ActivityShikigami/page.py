@@ -36,7 +36,7 @@ if special_act_Flag:
     # 特殊活动中转地图页面
     page_act_map = Page(ActivityShikigamiAssets.I_MAP_GOTO_BATTLE)
     page_act_map.connect(
-        page_act, GlobalGameAssets.I_UI_BACK_YELLOW, key="page_act_map->page_act"
+        page_act, ActivityShikigamiAssets.I_MAP_BACK, key="page_act_map->page_act"
     )
     page_act.connect(
         page_act_map,

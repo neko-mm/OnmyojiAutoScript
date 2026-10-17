@@ -102,6 +102,8 @@ class ActivityShikigamiAssets:
 
 
 	# Image Rule Assets
+	# 活动地图圆形返回按钮
+	I_MAP_BACK = RuleImage(roi_front=(20,15,45,45), roi_back=(0,0,90,80), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_map_back.png")
 	# 庭院进入活动 
 	I_MAIN_GOTO_ACT = RuleImage(roi_front=(1175,208,67,70), roi_back=(1175,208,67,70), threshold=0.7, method="Template matching", file="./tasks/ActivityShikigami/as/as_main_goto_act.png")
 	# 右上跳过按钮 

@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "map_back",
+    "imageName": "as_map_back.png",
+    "roiFront": "20,15,45,45",
+    "roiBack": "0,0,90,80",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "活动地图圆形返回按钮"
+  },
+  {
     "itemName": "main_goto_act",
     "imageName": "as_main_goto_act.png",
     "roiFront": "1175,208,67,70",
