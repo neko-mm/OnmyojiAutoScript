@@ -18,17 +18,35 @@ def load_check_tickets():
 class TicketTask:
     climb_type = 'pass'
 
-    def __init__(self, previous, readings):
+    def __init__(self, previous, readings, cost=1):
         self.pre_tickets_map = {'pass': previous}
         self.readings = iter(readings)
         self.device = SimpleNamespace(image=None)
         self.O_REMAIN_PASS = SimpleNamespace(ocr_digit=lambda _: next(self.readings))
+        self.required_pass_tickets = lambda: cost
 
     def screenshot(self):
         pass
 
 
 class ActivityTicketsTest(unittest.TestCase):
+    def test_button_cost_recognition_retries_and_rejects_unknown_values(self):
+        source = Path(__file__).resolve().parents[1] / 'tasks/ActivityShikigami/activities/normal.py'
+        tree = ast.parse(source.read_text())
+        cls = next(node for node in tree.body if isinstance(node, ast.ClassDef))
+        method = next(node for node in cls.body if isinstance(node, ast.FunctionDef)
+                      and node.name == 'required_pass_tickets')
+        scope = {'GameStuckError': ValueError}
+        exec(compile(ast.Module(body=[method], type_ignores=[]), str(source), 'exec'), scope)
+        for readings, expected in (([1], 1), ([5], 5), ([0, 5], 5)):
+            values = iter(readings)
+            task = SimpleNamespace(device=SimpleNamespace(image=None), screenshot=lambda: None,
+                                   O_PASS_COST=SimpleNamespace(ocr_digit=lambda _: next(values)))
+            self.assertEqual(scope['required_pass_tickets'](task), expected)
+        values = iter([0, 0])
+        with self.assertRaisesRegex(ValueError, '无法识别挑战按钮上的门票消耗'):
+            scope['required_pass_tickets'](task)
+
     def test_five_ticket_battles_stop_at_zero(self):
         task = TicketTask(20, [15, 15, 10, 10, 5, 5, 0, 0])
         check = load_check_tickets()
@@ -45,6 +63,18 @@ class ActivityTicketsTest(unittest.TestCase):
 
     def test_normal_reading_does_not_need_confirmation(self):
         self.assertTrue(load_check_tickets()(TicketTask(5, [4])))
+
+    def test_less_than_five_tickets_stops_five_ticket_mode(self):
+        for remaining in range(1, 5):
+            with self.subTest(remaining=remaining):
+                task = TicketTask(remaining + 5, [remaining, remaining], cost=5)
+                self.assertFalse(load_check_tickets()(task))
+
+    def test_exactly_five_tickets_can_start(self):
+        self.assertTrue(load_check_tickets()(TicketTask(10, [5, 5], cost=5)))
+
+    def test_single_ticket_mode_can_use_last_ticket(self):
+        self.assertTrue(load_check_tickets()(TicketTask(2, [1], cost=1)))
 
     def test_zero_at_start_stops(self):
         self.assertFalse(load_check_tickets()(TicketTask(-1, [0, 0])))

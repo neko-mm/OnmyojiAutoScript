@@ -12,6 +12,15 @@ from tasks.GameUi.page import all_of
 class NormalClimbAct(BaseAct):
     """普通爬塔活动"""
 
+    def required_pass_tickets(self) -> int:
+        cost = self.O_PASS_COST.ocr_digit(self.device.image)
+        if cost not in (1, 5):
+            self.screenshot()
+            cost = self.O_PASS_COST.ocr_digit(self.device.image)
+        if cost not in (1, 5):
+            raise GameStuckError("无法识别挑战按钮上的门票消耗，请检查当前挑战界面")
+        return cost
+
     def _exit_matcher(self) -> ExitMatcher | None:
         return pages.any_of(self.I_ACT_FIRE, self.I_AS_BOSS_FIRE)
 

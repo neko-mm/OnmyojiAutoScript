@@ -72,6 +72,8 @@ class ActivityShikigamiAssets:
 
 
 	# Ocr Rule Assets
+	# 挑战按钮的单场门票消耗
+	O_PASS_COST = RuleOcr(roi=(1175,638,48,32), area=(1175,638,48,32), mode="Digit", method="Default", keyword="", name="pass_cost")
 	# 挑战 
 	O_FIRE = RuleOcr(roi=(962,529,308,171), area=(964,530,309,171), mode="Full", method="Default", keyword="挑战", name="fire")
 	# 体力的数量检测 

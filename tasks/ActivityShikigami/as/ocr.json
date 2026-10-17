@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "pass_cost",
+    "roiFront": "1175,638,48,32",
+    "roiBack": "1175,638,48,32",
+    "mode": "Digit",
+    "method": "Default",
+    "keyword": "",
+    "description": "挑战按钮的单场门票消耗"
+  },
+  {
     "itemName": "fire",
     "roiFront": "962,529,308,171",
     "roiBack": "964,530,309,171",

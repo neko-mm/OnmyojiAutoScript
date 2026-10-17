@@ -286,6 +286,9 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
             case _:
                 self.ui_click(self.I_LOCK, stop=self.I_UNLOCK, interval=1.5)
 
+    def required_pass_tickets(self) -> int:
+        return 1
+
     def check_tickets_enough(self) -> bool:
         """
         判断当前爬塔门票是否足够
@@ -301,10 +304,16 @@ class BaseAct(StateMachine, GameUi, GeneralBattle, SwitchSoul, ActivityShikigami
             return rule.ocr_digit(self.device.image)
 
         remain_times = read_remaining()
+        required = self.required_pass_tickets() if self.climb_type == "pass" else 1
         # 多倍挑战可能一次消耗多张门票；数量突降或识别为空时重新截图核实。
-        if remain_times <= 0 or self.pre_tickets_map[self.climb_type] - remain_times > 1:
+        if remain_times < required or self.pre_tickets_map[self.climb_type] - remain_times > 1:
             remain_times = read_remaining()
         self.pre_tickets_map[self.climb_type] = remain_times
+        if self.climb_type == "pass":
+            logger.info(f"活动门票剩余 {remain_times} 张，本次挑战需要 {required} 张")
+            if remain_times < required:
+                logger.info("剩余门票不足本次挑战消耗，结束门票挑战")
+                return False
         if remain_times <= 0:
             logger.info("连续两次未识别到可用的挑战资源，结束本轮挑战")
-        return remain_times > 0
+        return remain_times >= required
