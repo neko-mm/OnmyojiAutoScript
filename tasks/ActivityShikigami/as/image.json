@@ -57,8 +57,8 @@
     "itemName": "ap_unlock",
     "imageName": "as_ap_unlock.png",
     "roiFront": "799,653,22,25",
-    "roiBack": "686,610,313,92",
-    "method": "Template matching",
+    "roiBack": "886,640,50,55",
+    "method": "Multi-scale template matching",
     "threshold": 0.8,
     "description": "体力爬塔阵容解锁"
   },
@@ -66,8 +66,8 @@
     "itemName": "ap_lock",
     "imageName": "as_ap_lock.png",
     "roiFront": "798,656,27,26",
-    "roiBack": "686,610,313,92",
-    "method": "Template matching",
+    "roiBack": "886,640,50,55",
+    "method": "Multi-scale template matching",
     "threshold": 0.8,
     "description": "体力爬塔阵容锁定"
   },

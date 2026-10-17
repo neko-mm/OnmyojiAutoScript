@@ -1,4 +1,6 @@
 from module.logger import logger
+from module.base.timer import Timer
+from module.exception import GameStuckError
 from tasks.ActivityShikigami.assets import ActivityShikigamiAssets
 from tasks.ActivityShikigami.base_act import BaseAct
 import tasks.ActivityShikigami.page as pages
@@ -88,8 +90,16 @@ class NormalClimbAct(BaseAct):
                 lock_rule = self.I_AP_LOCK
                 unlock_rule = self.I_AP_UNLOCK
         if enable:
-            logger.info(f"Lock {self.climb_type} team")
-            self.ui_click(unlock_rule, stop=lock_rule, interval=1.5)
-            return
-        logger.info(f"Unlock {self.climb_type} team")
-        self.ui_click(lock_rule, stop=unlock_rule, interval=1.5)
+            logger.info("正在确认活动阵容已锁定")
+            click_rule, stop_rule = unlock_rule, lock_rule
+        else:
+            logger.info("正在确认活动阵容已解锁")
+            click_rule, stop_rule = lock_rule, unlock_rule
+        timer = Timer(12).start()
+        while True:
+            self.screenshot()
+            if self.appear(stop_rule):
+                return
+            if timer.reached():
+                raise GameStuckError("无法确认活动阵容锁定状态，请检查阵容开关")
+            self.appear_then_click(click_rule, interval=1.5)

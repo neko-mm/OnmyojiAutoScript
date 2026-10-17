@@ -37,9 +37,9 @@ class ActivityShikigamiAssets:
 	# 100体爬塔标志 
 	I_CLIMB_MODE_AP100 = RuleImage(roi_front=(1186,665,22,25), roi_back=(1055,495,202,219), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_climb_mode_ap100.png")
 	# 体力爬塔阵容解锁 
-	I_AP_UNLOCK = RuleImage(roi_front=(799,653,22,25), roi_back=(686,610,313,92), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_ap_unlock.png")
+	I_AP_UNLOCK = RuleImage(roi_front=(799,653,22,25), roi_back=(886,640,50,55), threshold=0.8, method="Multi-scale template matching", file="./tasks/ActivityShikigami/as/as_ap_unlock.png")
 	# 体力爬塔阵容锁定 
-	I_AP_LOCK = RuleImage(roi_front=(798,656,27,26), roi_back=(686,610,313,92), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_ap_lock.png")
+	I_AP_LOCK = RuleImage(roi_front=(798,656,27,26), roi_back=(886,640,50,55), threshold=0.8, method="Multi-scale template matching", file="./tasks/ActivityShikigami/as/as_ap_lock.png")
 	# 活动通用挑战图标 
 	I_ACT_FIRE = RuleImage(roi_front=(1137,591,82,45), roi_back=(1137,591,82,45), threshold=0.8, method="Template matching", file="./tasks/ActivityShikigami/as/as_act_fire.png")
 	# boss挑战标志 
