@@ -22,13 +22,56 @@ PAGE_LOG_LABELS = {
     "page_battle_result": "战斗结算",
     "page_reward": "奖励页面",
     "page_battle_team": "组队房间",
+    "page_battle_team_exit": "退出组队确认",
+    "page_login": "游戏登录",
+    "page_shikigami_records": "式神录",
+    "page_realm_raid": "个人突破",
+    "page_kekkai_toppa": "寮突破",
+    "page_guild": "阴阳寮",
+    "page_mall": "商店",
+    "page_store_gift_room": "商店礼包",
+    "page_delegation": "式神委派",
+    "page_friends": "好友",
+    "page_summon": "召唤",
+    "page_secret_zones": "秘闻副本",
+    "page_demon_encounter": "逢魔之时",
+    "page_town": "町中",
+    "page_act": "活动主页",
+    "page_act_map": "活动地图",
+    "page_act_pass": "活动门票挑战",
+    "page_act_ap": "活动体力挑战",
+    "page_act_ap100": "活动百体挑战",
+    "page_act_boss": "活动首领挑战",
+    "page_exp_main": "探索场景",
+    "page_exp_entrance": "探索章节入口",
+    "page_exp_exit": "退出探索确认",
+    "page_exp_settings": "探索设置",
 }
 
 
 def page_log_label(name: str) -> str:
     """同时展示中文页名和原始页面标识，便于读日志和排查。"""
-    label = PAGE_LOG_LABELS.get(name)
+    label = PAGE_LOG_LABELS.get(name.lower())
     return f"{label}（{name}）" if label else name
+
+
+_PAGE_REFS = re.compile(r"(?<![\w（(])page_[A-Za-z0-9_]+\b", re.IGNORECASE)
+_PAGE_CONTEXT_PREFIXES = (
+    "Transition ", "Page detect miss[", "Current page:", "Target page:",
+    "Current page checks:", "Last path signature:", "Edge penalties:",
+)
+_CLIMB_MODES = {
+    "pass": "门票挑战", "ap": "体力挑战",
+    "ap100": "百体挑战", "boss": "首领挑战",
+}
+_CLIMB_RESOURCES = {
+    "pass": "活动门票", "ap": "体力",
+    "ap100": "百体挑战资源", "boss": "首领挑战次数",
+}
+
+
+def _climb_mode(mode: str) -> str:
+    return _CLIMB_MODES[mode.lower()]
 
 
 _MESSAGES = {
@@ -72,6 +115,7 @@ _MESSAGES = {
     "Pets": "小猫咪",
     "HeroTest": "英杰试炼",
     "Exploration": "探索",
+    "ActivityShikigami": "当期爬塔",
     "KekkaiUtilize": "结界蹭卡",
     "KekkaiActivation": "结界挂卡",
     "RichMan": "大富翁",
@@ -92,6 +136,7 @@ _MESSAGES = {
     "App stop": "关闭游戏",
     "App start": "启动游戏",
     "App restart": "重启游戏",
+    "auto save config": "已自动保存配置",
     # 战斗、阵容和加成
     "Green is enable": "已启用绿标",
     "Green left 1": "绿标位置：左侧第 1 位",
@@ -143,6 +188,8 @@ _MESSAGES = {
     "No soul buff": "未找到御魂加成",
     "Start open soul buff": "开启御魂加成",
     "Start close soul buff": "关闭御魂加成",
+    "Tigger random sleep": "触发随机休息",
+    "Trigger random sleep": "触发随机休息",
     # 组队与邀请
     "Invite friends": "邀请好友",
     "Not enter invite page": "未进入组队邀请页面",
@@ -190,6 +237,27 @@ _MESSAGES = {
     "Deal with invitation done": "好友邀请已处理",
     "Get reward success": "奖励领取成功",
     "Get reward timeout": "领取奖励超时",
+    "Opening settings failed": "未能打开设置界面",
+    "Alternate number is enough": "候补式神数量已充足",
+    "Alternate number is enough, exit": "候补式神数量已充足，结束补充",
+    "Minions count is enough, exit": "已达到设置的战斗次数，结束探索",
+    "Exploration time limit out, exit": "已达到设置的运行时长，结束探索",
+    "Member wait time out, exit": "组队等待超时，结束探索",
+    "Friend disappeared, quit": "未检测到队友，退出当前探索场景",
+    "Treasure box small appear, get it.": "发现小宝箱，开始领取",
+    "Treasure box big appear, get it.": "发现大宝箱，开始领取",
+    "Not collect paper doll reward": "已设置不领取小纸人奖励，退出探索场景",
+    "RealmRaid and Exploration  set_next_run !": "突破券已达设置数量，暂停探索并安排突破任务",
+    "All climbing activities have been completed": "本轮爬塔流程已结束",
+    "No tickets left, wait for next time": "未检测到可用的挑战资源，本轮结束",
+    "Delegation one": "处理单项式神委派",
+    "Switch soul config error": "御魂预设配置有误，请检查分组和队伍设置",
+    "Click preset in switch soul": "打开御魂预设",
+    "Exit shikigami records": "退出式神录",
+    "Swipe to top of group": "将预设分组列表滑到顶部",
+    "Swipe down to find target group": "向下查找指定的预设分组",
+    "Swipe to top of team": "将预设队伍列表滑到顶部",
+    "Swipe up to find target team": "滑动查找指定的预设队伍",
     "Switch soul by name": "按名称切换御魂",
     "Start switch soul": "开始切换御魂",
     "Quick loadout": "快速预设",
@@ -269,6 +337,42 @@ _MESSAGES = {
 _EXACT = {original.casefold(): translated for original, translated in _MESSAGES.items()}
 
 _PATTERNS = (
+    (re.compile(r"^Start run (pass|ap100|ap|boss)$", re.IGNORECASE),
+     lambda mode: f"开始{_climb_mode(mode)}"),
+    (re.compile(r"^Start run climb type (pass|ap100|ap|boss)$", re.IGNORECASE),
+     lambda mode: f"开始{_climb_mode(mode)}"),
+    (re.compile(r"^Climb switch to (pass|ap100|ap|boss)$", re.IGNORECASE),
+     lambda mode: f"切换到{_climb_mode(mode)}"),
+    (re.compile(r"^Climb type (pass|ap100|ap|boss) time out$"),
+     lambda mode: f"爬塔运行时间已达上限（{_climb_mode(mode)}）"),
+    (re.compile(r"^Climb type (pass|ap100|ap|boss) count limit reached$"),
+     lambda mode: f"{_climb_mode(mode)}已达到设置的战斗场次"),
+    (re.compile(r"^Check (pass|ap100|ap|boss) tickets$", re.IGNORECASE),
+     lambda mode: f"检查{_CLIMB_RESOURCES[mode.lower()]}"),
+    (re.compile(r"^Lock (pass|ap100|ap|boss) team$"),
+     lambda mode: f"锁定{_climb_mode(mode)}阵容"),
+    (re.compile(r"^Unlock (pass|ap100|ap|boss) team$"),
+     lambda mode: f"解锁{_climb_mode(mode)}阵容"),
+    (re.compile(r"^(pass|ap100|ap|boss) cannot enter battle, click reach max times$"),
+     lambda mode: f"多次点击仍未进入{_climb_mode(mode)}，停止本轮尝试"),
+    (re.compile(r"^(pass|ap100|ap|boss) cannot enter battle, appear red close button, maybe not enough tickets$"),
+     lambda mode: f"{_climb_mode(mode)}出现提示弹窗，可能是挑战资源不足"),
+    (re.compile(r"^Try click fire, remain times\[(\d+)\]$"), "尝试开始挑战，还可重试 {} 次"),
+    (re.compile(r"^Alternate number is not enough, current: (\d+)$"), "候补式神不足，当前数量：{}"),
+    (re.compile(r"^Swiped (\d+) times, current exploration level: (.+)$"), "已滑动章节列表 {} 次，当前识别到：{}"),
+    (re.compile(r"^Delegation: (.+) not found$"), "当前委派列表中未找到“{}”"),
+    (re.compile(r"^Delegation: (.+) is in delegation$"), "委派“{}”正在进行中，本次跳过"),
+    (re.compile(r"^Enter Delegation: (.+)$"), "为委派“{}”选择式神"),
+    (re.compile(r"^Delegation: (.+) start$"), "正在派遣委派“{}”"),
+    (re.compile(r"^Click team (.+) failed in group (.+)$"),
+     lambda team, group: f"本次未能点击预设队伍（分组：{group}，队伍：{team}）"),
+    (re.compile(r"^Switch soul_one group (.+) team (.+)$"), "预设切换操作结束（分组：{}，队伍：{}）"),
+    (re.compile(r"^Select group (.+)$"), "选择预设分组：{}"),
+    (re.compile(r"^Select team (.+)$"), "选择预设队伍：{}"),
+    (re.compile(r"^Switch main costume to (.+)$"), "使用庭院皮肤识别方案：{}"),
+    (re.compile(r"^Switch battle theme (.+)$"), "使用战斗界面识别方案：{}"),
+    (re.compile(r"^Switch shikigami theme (.+)$"), "使用式神录识别方案：{}"),
+    (re.compile(r"^Switch courtyard affair (.+)$"), "使用庭院事务识别方案：{}"),
     (re.compile(r"^Need invite friend list: (.+)$"), "待邀请好友：{}"),
     (re.compile(r"^Room type: (.+)$"), "房间类型：{}"),
     (re.compile(r"^Friend class: (.+)$"), "好友分类：{}"),
@@ -315,10 +419,10 @@ _PATTERNS = (
     (re.compile(r"^Current page checks: (.+)$"), "当前页面识别结果：{}"),
     (re.compile(r"^Last path signature: (.+)$"), "上次切换路径：{}"),
     (re.compile(r"^Last repeated-failure close result: (.+)$"), "重复失败后的关闭结果：{}"),
-    (re.compile(r"^Edge penalties: (.+)$"), "页面切换失败惩罚值：{}"),
+    (re.compile(r"^Edge penalties: (.+)$"), "各跳转路径的失败权重：{}"),
     (re.compile(r"^Unknown close history: (.+)$"), "未知页面的关闭记录：{}"),
-    (re.compile(r"^Transition failed before leaving (.+): (.+), penalty=(.+)$"), "离开 {} 时页面切换失败：{}，惩罚值 {}"),
-    (re.compile(r"^Transition cannot reach (.+): (.+), penalty=(.+)$"), "无法到达 {}：{}，惩罚值 {}"),
+    (re.compile(r"^Transition failed before leaving (.+): (.+), penalty=(.+)$"), "从 {} 跳转失败：{}，路径失败权重 {}"),
+    (re.compile(r"^Transition cannot reach (.+): (.+), penalty=(.+)$"), "未能进入 {}：{}，路径失败权重 {}"),
     (re.compile(r"^Transition (.+) repeated failure close result: (.+)$"), "页面切换 {} 连续失败，关闭弹窗结果：{}"),
     (re.compile(r"^Execute: (.+)$"), "执行命令：{}"),
     (re.compile(r"^CPU ABI invalid: (.+)$"), "设备 CPU 架构无效：{}"),
@@ -356,7 +460,10 @@ def localize_log_text(message: str) -> str:
     for pattern, template in _PATTERNS:
         match = pattern.fullmatch(message)
         if match:
-            return template.format(*match.groups())
+            translated = template(*match.groups()) if callable(template) else template.format(*match.groups())
+            if message.startswith(_PAGE_CONTEXT_PREFIXES):
+                return _PAGE_REFS.sub(lambda page: page_log_label(page.group()), translated)
+            return translated
     return message
 
 
