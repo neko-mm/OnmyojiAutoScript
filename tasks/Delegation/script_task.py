@@ -7,6 +7,7 @@ from datetime import time, datetime, timedelta
 from module.logger import logger
 from module.exception import GameTooManyClickError, TaskEnd
 from module.base.timer import Timer
+from module.atom.click import RuleClick
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main, page_delegation
@@ -92,6 +93,26 @@ class ScriptTask(GameUi, DelegationAssets):
         # ui_click(self.C_D_5, self.I_D_SELECT_5)
         # self.ui_click_until_disappear(self.I_D_START)
 
+    def _click_completed_reward(self):
+        rule = self.O_D_DONE
+        results = rule.detect_and_ocr(self.device.image)
+        completed = [result for result in results if result.ocr_text.strip() == '完成']
+        if not completed:
+            return False
+        # 每次只选一个地图标记，避免多个文字框合并后点到空白处。
+        result = min(completed, key=lambda item: (item.box[0][1], item.box[0][0]))
+        left = min(point[0] for point in result.box) + rule.roi[0]
+        right = max(point[0] for point in result.box) + rule.roi[0]
+        top = min(point[1] for point in result.box) + rule.roi[1]
+        width = min(64, max(32, right - left))
+        area = (int((left + right - width) / 2), int(top - 52), int(width), 40)
+        x, y, w, h = area
+        rx, ry, rw, rh = rule.roi
+        if x < rx or y < ry or x + w > rx + rw or y + h > ry + rh:
+            return False
+        target = RuleClick(roi_front=area, roi_back=area, name=rule.name)
+        return self.click(target, interval=1.5)
+
     def check_reward(self):
         check_timer = Timer(3)
         check_timer.start()
@@ -119,7 +140,7 @@ class ScriptTask(GameUi, DelegationAssets):
                 continue
             if check_timer.reached():
                 break
-            if self.ocr_appear_click(self.O_D_DONE, interval=1):
+            if self._click_completed_reward():
                 if last_button is not None and last_button != self.O_D_DONE:
                     self.device.click_record_remove(last_button)
                 last_button = self.O_D_DONE
