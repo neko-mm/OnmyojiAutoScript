@@ -18,6 +18,7 @@ from tasks.Delegation.assets import DelegationAssets
 class ScriptTask(GameUi, DelegationAssets):
 
     def run(self):
+        self.navigator.add_unknown_closer(self._advance_reward_dialogue)
         self.goto_page(page_delegation)
         self.check_reward()
         con: DelegationConfig = self.config.delegation.delegation_config
@@ -93,6 +94,13 @@ class ScriptTask(GameUi, DelegationAssets):
         # ui_click(self.C_D_5, self.I_D_SELECT_5)
         # self.ui_click_until_disappear(self.I_D_START)
 
+    def _advance_reward_dialogue(self):
+        if self.appear_then_click(self.I_REWARDS_IBUKI_DIALOGUE,
+                                  action=self.C_REWARDS_DIALOGUE_CONTINUE, interval=1):
+            logger.info('继续式神委派的伊吹对话')
+            return True
+        return False
+
     def _click_completed_reward(self):
         rule = self.O_D_DONE
         results = rule.detect_and_ocr(self.device.image)
@@ -121,12 +129,15 @@ class ScriptTask(GameUi, DelegationAssets):
         while 1:
             self.screenshot()
             clicked = None
-            for button in (self.I_REWARDS_GET, self.I_REWARDS_CHAT,
-                           self.I_CHAT_1, self.I_CHAT_2,
-                           self.I_REWARDS_DONE, self.I_REWARDS_FALSE):
-                if self.appear_then_click(button, interval=1):
-                    clicked = button
-                    break
+            if self._advance_reward_dialogue():
+                clicked = self.I_REWARDS_IBUKI_DIALOGUE
+            else:
+                for button in (self.I_REWARDS_GET, self.I_REWARDS_CHAT,
+                               self.I_CHAT_1, self.I_CHAT_2,
+                               self.I_REWARDS_DONE, self.I_REWARDS_FALSE):
+                    if self.appear_then_click(button, interval=1):
+                        clicked = button
+                        break
             if clicked is not None:
                 if last_button is not None and last_button != clicked:
                     self.device.click_record_remove(last_button)

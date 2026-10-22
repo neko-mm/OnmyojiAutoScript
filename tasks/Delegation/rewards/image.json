@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "rewards_ibuki_dialogue",
+    "imageName": "rewards_ibuki_dialogue.png",
+    "roiFront": "310,533,84,36",
+    "roiBack": "290,520,160,65",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "委派对话的伊吹名字牌"
+  },
+  {
     "itemName": "rewards_done",
     "imageName": "rewards_rewards_done.png",
     "roiFront": "982,303,149,60",

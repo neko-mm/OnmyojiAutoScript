@@ -52,6 +52,8 @@ class DelegationAssets:
 
 
 	# Image Rule Assets
+	# 委派对话的伊吹名字牌
+	I_REWARDS_IBUKI_DIALOGUE = RuleImage(roi_front=(310,533,84,36), roi_back=(290,520,160,65), threshold=0.85, method="Template matching", file="./tasks/Delegation/rewards/rewards_ibuki_dialogue.png")
 	# description 
 	I_REWARDS_DONE = RuleImage(roi_front=(982,303,149,60), roi_back=(982,303,149,60), threshold=0.8, method="Template matching", file="./tasks/Delegation/rewards/rewards_rewards_done.png")
 	# description 
@@ -71,5 +73,10 @@ class DelegationAssets:
 	# Ocr Rule Assets
 	# 地图上的委派完成标记
 	O_D_DONE = RuleOcr(roi=(20,100,920,520), area=(20,100,920,520), mode="Full", method="Default", keyword="完成", name="d_done")
+
+
+	# Click Rule Assets
+	# 继续委派对话
+	C_REWARDS_DIALOGUE_CONTINUE = RuleClick(roi_front=(420,615,400,60), roi_back=(420,615,400,60), name="rewards_dialogue_continue")
 
 

@@ -82,6 +82,9 @@ class RewardTask:
     def _click_completed_reward(self):
         return self.ocr_appear_click(self.O_D_DONE, interval=1.5)
 
+    def _advance_reward_dialogue(self):
+        return False
+
 
 class DelegationRewardTest(unittest.TestCase):
     def test_reward_stage_change_does_not_trigger_two_button_guard(self):
