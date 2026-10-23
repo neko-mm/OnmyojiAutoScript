@@ -52,6 +52,8 @@ class DelegationAssets:
 
 
 	# Image Rule Assets
+	# 展开收起的委派列表
+	I_REWARDS_PANEL_COLLAPSED = RuleImage(roi_front=(1176,132,41,50), roi_back=(1150,100,100,100), threshold=0.85, method="Template matching", file="./tasks/Delegation/rewards/rewards_panel_collapsed.png")
 	# 委派对话的伊吹名字牌
 	I_REWARDS_IBUKI_DIALOGUE = RuleImage(roi_front=(310,533,84,36), roi_back=(290,520,160,65), threshold=0.85, method="Template matching", file="./tasks/Delegation/rewards/rewards_ibuki_dialogue.png")
 	# description 

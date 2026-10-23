@@ -60,6 +60,13 @@ class ScriptTask(GameUi, DelegationAssets):
             return False
         while 1:
             self.screenshot()
+            if self._recover_reward_screen():
+                self.check_reward()
+                self.screenshot()
+                if not self.ocr_appear(self.O_D_NAME):
+                    logger.info(f'委派“{name}”的领奖流程已结束，当前列表中已无该委派')
+                    return False
+                continue
             if self.appear(self.I_D_START):
                 break
             # 如果出现’召回‘ ’返回‘ 说明这个是现在委派中
@@ -154,6 +161,8 @@ class ScriptTask(GameUi, DelegationAssets):
                 check_timer.reset()
                 continue
             if not self.appear(self.I_REWARDS_MIN):
+                if self.appear_then_click(self.I_REWARDS_PANEL_COLLAPSED, interval=1):
+                    check_timer.reset()
                 continue
             if check_timer.reached():
                 break

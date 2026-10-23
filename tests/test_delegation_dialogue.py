@@ -20,11 +20,12 @@ def load_methods():
     tree = ast.parse(source.read_text(encoding='utf-8'))
     task = next(node for node in tree.body if isinstance(node, ast.ClassDef))
     methods = [node for node in task.body if isinstance(node, ast.FunctionDef)
-               and node.name in ('run', '_advance_reward_dialogue', '_handle_reward_screen',
+               and node.name in ('run', 'delegate_one', '_advance_reward_dialogue', '_handle_reward_screen',
                                  '_recover_reward_screen', 'check_reward')]
     scope = {'Timer': Timer, 'GameTooManyClickError': TooManyClicks,
              'TaskEnd': TaskEnd, 'page_delegation': 'delegation',
-             'logger': SimpleNamespace(info=lambda *_: None)}
+             'logger': SimpleNamespace(info=lambda *_: None, warning=lambda *_: None,
+                                       hr=lambda *_: None)}
     exec(compile(ast.Module(body=methods, type_ignores=[]), str(source), 'exec'), scope)
     return scope
 
@@ -47,7 +48,7 @@ class DialogueTask(RewardTask):
                 miyoshino_painting=False, bird_feather=False, find_earring=False,
                 cat_boss=False, miyoshino=False, strange_trace=False)))
         for name, method in load_methods().items():
-            if name in ('run', '_advance_reward_dialogue', '_handle_reward_screen',
+            if name in ('run', 'delegate_one', '_advance_reward_dialogue', '_handle_reward_screen',
                         '_recover_reward_screen', 'check_reward'):
                 setattr(self, name, method.__get__(self))
 
@@ -86,7 +87,76 @@ class DialogueTask(RewardTask):
         self.actions.append(('scheduled', kwargs))
 
 
+class SelectionTask(DialogueTask):
+    I_D_START = 'START'
+    I_D_BACK = 'BACK'
+    I_D_SKIP = 'SKIP'
+    I_D_CONFIRM = 'CONFIRM'
+    I_REWARDS_PANEL_COLLAPSED = 'PANEL_COLLAPSED'
+
+    def __init__(self):
+        super().__init__(pages=0)
+        self.O_D_NAME = SimpleNamespace(keyword='')
+        self.selected = False
+        self.panel_collapsed = False
+        self.frames = 0
+
+    def screenshot(self):
+        self.frames += 1
+        if self.frames > 40:
+            raise RuntimeError('详情循环一直等待委派名称，没有处理对话')
+
+    def ocr_appear(self, target):
+        return not self.selected
+
+    def ocr_appear_click(self, target, interval):
+        if target is self.O_D_NAME:
+            if self.selected:
+                return False
+            self.selected = True
+            self.pages = 2
+            self.actions.append(('select',))
+            return True
+        return False
+
+    def appear(self, target):
+        if target == self.I_REWARDS_MIN:
+            return not self.pages and not self.complete and not self.panel_collapsed
+        return super().appear(target)
+
+    def appear_then_click(self, target, interval, action=None):
+        if target == self.I_REWARDS_PANEL_COLLAPSED:
+            if not self.panel_collapsed:
+                return False
+            self.panel_collapsed = False
+            self.actions.append(('expand_list',))
+            return True
+        clicked = super().appear_then_click(target, interval, action)
+        if clicked and target == self.I_REWARDS_IBUKI_DIALOGUE and self.pages == 0:
+            self.complete = True
+            self.pages = 1
+        if clicked and target == self.I_REWARDS_DONE:
+            self.panel_collapsed = True
+        return clicked
+
+
 class DelegationDialogueTest(unittest.TestCase):
+    def test_completed_task_selected_by_name_recovers_full_reward_flow(self):
+        task = SelectionTask()
+        self.assertFalse(task.delegate_one('猫老大'))
+        self.assertFalse(task.pages)
+        self.assertFalse(task.complete)
+        self.assertFalse(task.panel_collapsed)
+        self.assertEqual(sum(action[0] == 'select' for action in task.actions), 1)
+        self.assertIn(('expand_list',), task.actions)
+        self.assertTrue(any(action[0] == 'REWARDS_DONE' for action in task.actions))
+
+    def test_collection_reopens_collapsed_list(self):
+        task = SelectionTask()
+        task.panel_collapsed = True
+        task.check_reward()
+        self.assertEqual(task.actions, [('expand_list',)])
+
     def test_starting_in_dialogue_recovers_before_arrival(self):
         task = DialogueTask()
         with self.assertRaises(TaskEnd):
@@ -160,7 +230,8 @@ class DelegationDialogueTest(unittest.TestCase):
 
     def test_marker_is_only_the_small_nameplate(self):
         folder = ROOT / 'tasks/Delegation/rewards'
-        rule = json.loads((folder / 'image.json').read_text())[0]
+        rule = next(rule for rule in json.loads((folder / 'image.json').read_text())
+                    if rule['itemName'] == 'rewards_ibuki_dialogue')
         image = (folder / rule['imageName']).read_bytes()
         self.assertEqual(struct.unpack('!II', image[16:24]), (84, 36))
         self.assertEqual(rule['roiFront'], '310,533,84,36')
