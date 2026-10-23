@@ -18,7 +18,7 @@ from tasks.Delegation.assets import DelegationAssets
 class ScriptTask(GameUi, DelegationAssets):
 
     def run(self):
-        self.navigator.add_unknown_closer(self._advance_reward_dialogue)
+        self.navigator.add_unknown_closer(self._recover_reward_screen)
         self.goto_page(page_delegation)
         self.check_reward()
         con: DelegationConfig = self.config.delegation.delegation_config
@@ -101,6 +101,21 @@ class ScriptTask(GameUi, DelegationAssets):
             return True
         return False
 
+    def _handle_reward_screen(self):
+        # 名字牌会留在领奖弹窗后面，先处理按钮，不能只凭名字继续对话。
+        for button in (self.I_REWARDS_DONE, self.I_REWARDS_GET, self.I_REWARDS_FALSE,
+                       self.I_REWARDS_CHAT, self.I_CHAT_1, self.I_CHAT_2):
+            if self.appear(button):
+                if self.appear_then_click(button, interval=1):
+                    return button
+                return None
+        if self._advance_reward_dialogue():
+            return self.I_REWARDS_IBUKI_DIALOGUE
+        return None
+
+    def _recover_reward_screen(self):
+        return self._handle_reward_screen() is not None
+
     def _click_completed_reward(self):
         rule = self.O_D_DONE
         results = rule.detect_and_ocr(self.device.image)
@@ -128,16 +143,7 @@ class ScriptTask(GameUi, DelegationAssets):
         click_count = 0
         while 1:
             self.screenshot()
-            clicked = None
-            if self._advance_reward_dialogue():
-                clicked = self.I_REWARDS_IBUKI_DIALOGUE
-            else:
-                for button in (self.I_REWARDS_GET, self.I_REWARDS_CHAT,
-                               self.I_CHAT_1, self.I_CHAT_2,
-                               self.I_REWARDS_DONE, self.I_REWARDS_FALSE):
-                    if self.appear_then_click(button, interval=1):
-                        clicked = button
-                        break
+            clicked = self._handle_reward_screen()
             if clicked is not None:
                 if last_button is not None and last_button != clicked:
                     self.device.click_record_remove(last_button)

@@ -23,14 +23,19 @@ class Timer:
         return self.idle >= 3
 
 
-def load_check_reward():
+def load_reward_methods():
     source = Path(__file__).resolve().parents[1] / 'tasks/Delegation/script_task.py'
     tree = ast.parse(source.read_text(encoding='utf-8'))
     script_task = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'ScriptTask')
-    method = next(node for node in script_task.body if isinstance(node, ast.FunctionDef) and node.name == 'check_reward')
+    methods = [node for node in script_task.body if isinstance(node, ast.FunctionDef)
+               and node.name in ('check_reward', '_handle_reward_screen')]
     scope = {'Timer': Timer, 'GameTooManyClickError': TooManyClicks}
-    exec(compile(ast.Module(body=[method], type_ignores=[]), str(source), 'exec'), scope)
-    return scope['check_reward']
+    exec(compile(ast.Module(body=methods, type_ignores=[]), str(source), 'exec'), scope)
+    return scope
+
+
+def load_check_reward():
+    return load_reward_methods()['check_reward']
 
 
 class Device:
@@ -71,7 +76,7 @@ class RewardTask:
         return False
 
     def appear(self, target):
-        return target == self.I_REWARDS_MIN
+        return target == self.I_REWARDS_MIN or bool(self.clicks and self.clicks[0] == target)
 
     def ocr_appear_click(self, target, interval):
         if self.clicks and self.clicks[0] == target:
@@ -84,6 +89,9 @@ class RewardTask:
 
     def _advance_reward_dialogue(self):
         return False
+
+    def _handle_reward_screen(self):
+        return load_reward_methods()['_handle_reward_screen'](self)
 
 
 class DelegationRewardTest(unittest.TestCase):

@@ -20,7 +20,8 @@ def load_methods():
     tree = ast.parse(source.read_text(encoding='utf-8'))
     task = next(node for node in tree.body if isinstance(node, ast.ClassDef))
     methods = [node for node in task.body if isinstance(node, ast.FunctionDef)
-               and node.name in ('run', '_advance_reward_dialogue', 'check_reward')]
+               and node.name in ('run', '_advance_reward_dialogue', '_handle_reward_screen',
+                                 '_recover_reward_screen', 'check_reward')]
     scope = {'Timer': Timer, 'GameTooManyClickError': TooManyClicks,
              'TaskEnd': TaskEnd, 'page_delegation': 'delegation',
              'logger': SimpleNamespace(info=lambda *_: None)}
@@ -32,9 +33,11 @@ class DialogueTask(RewardTask):
     I_REWARDS_IBUKI_DIALOGUE = 'IBUKI_DIALOGUE'
     C_REWARDS_DIALOGUE_CONTINUE = 'DIALOGUE_CONTINUE'
 
-    def __init__(self, pages=3):
+    def __init__(self, pages=3, complete=False):
         super().__init__([])
         self.pages = pages
+        self.complete = complete
+        self.allow_complete_click = True
         self.actions = []
         self.closers = []
         self.navigator = SimpleNamespace(
@@ -44,22 +47,35 @@ class DialogueTask(RewardTask):
                 miyoshino_painting=False, bird_feather=False, find_earring=False,
                 cat_boss=False, miyoshino=False, strange_trace=False)))
         for name, method in load_methods().items():
-            if name in ('run', '_advance_reward_dialogue', 'check_reward'):
+            if name in ('run', '_advance_reward_dialogue', '_handle_reward_screen',
+                        '_recover_reward_screen', 'check_reward'):
                 setattr(self, name, method.__get__(self))
 
     def appear_then_click(self, target, interval, action=None):
+        if target == self.I_REWARDS_DONE and self.complete:
+            if not self.allow_complete_click:
+                return False
+            self.device.click(target)
+            self.actions.append((target, action, interval))
+            self.complete = False
+            self.pages = 0
+            return True
         if target == self.I_REWARDS_IBUKI_DIALOGUE:
             if not self.pages:
                 return False
             self.device.click(target)
             self.actions.append((target, action, interval))
-            self.pages -= 1
+            if not self.complete:
+                self.pages -= 1
             return True
         return super().appear_then_click(target, interval)
 
+    def appear(self, target):
+        return target == self.I_REWARDS_DONE and self.complete or super().appear(target)
+
     def goto_page(self, destination):
         for _ in range(10):
-            if not self.pages:
+            if not self.pages and not self.complete:
                 self.actions.append(('arrived', destination))
                 return
             if not any(closer() for closer in self.closers):
@@ -102,6 +118,45 @@ class DelegationDialogueTest(unittest.TestCase):
         task = DialogueTask(pages=20)
         with self.assertRaises(TooManyClicks):
             task.check_reward()
+
+    def test_completion_popup_takes_priority_during_navigation(self):
+        task = DialogueTask(complete=True)
+        with self.assertRaises(TaskEnd):
+            task.run()
+        self.assertEqual(task.actions[0][0], 'REWARDS_DONE')
+        self.assertFalse(any(action[0] == 'IBUKI_DIALOGUE' for action in task.actions))
+
+    def test_completion_popup_takes_priority_during_collection(self):
+        task = DialogueTask(complete=True)
+        task.check_reward()
+        self.assertEqual(task.actions[0][0], 'REWARDS_DONE')
+        self.assertFalse(task.complete)
+
+    def test_completion_cooldown_does_not_fall_through_to_dialogue(self):
+        task = DialogueTask(complete=True)
+        task.allow_complete_click = False
+        self.assertFalse(task._recover_reward_screen())
+        self.assertFalse(task.actions)
+
+    def test_reward_popup_does_not_require_nameplate(self):
+        task = DialogueTask(pages=0, complete=True)
+        with self.assertRaises(TaskEnd):
+            task.run()
+        self.assertEqual(task.actions[0][0], 'REWARDS_DONE')
+
+    def test_recovery_reports_bool_without_a_second_click(self):
+        task = DialogueTask(complete=True)
+        self.assertIs(task._recover_reward_screen(), True)
+        self.assertEqual(len(task.actions), 1)
+
+    def test_other_reward_controls_take_priority_over_nameplate(self):
+        for button in ('REWARDS_GET', 'REWARDS_FALSE', 'REWARDS_CHAT', 'CHAT_1', 'CHAT_2'):
+            with self.subTest(button=button):
+                task = DialogueTask()
+                task.clicks.append(button)
+                self.assertEqual(task._handle_reward_screen(), button)
+                self.assertEqual(task.pages, 3)
+                self.assertFalse(task.actions)
 
     def test_marker_is_only_the_small_nameplate(self):
         folder = ROOT / 'tasks/Delegation/rewards'
