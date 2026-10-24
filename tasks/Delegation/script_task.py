@@ -60,13 +60,6 @@ class ScriptTask(GameUi, DelegationAssets):
             return False
         while 1:
             self.screenshot()
-            if self._recover_reward_screen():
-                self.check_reward()
-                self.screenshot()
-                if not self.ocr_appear(self.O_D_NAME):
-                    logger.info(f'委派“{name}”的领奖流程已结束，当前列表中已无该委派')
-                    return False
-                continue
             if self.appear(self.I_D_START):
                 break
             # 如果出现’召回‘ ’返回‘ 说明这个是现在委派中
@@ -79,6 +72,17 @@ class ScriptTask(GameUi, DelegationAssets):
             if self.appear_then_click(self.I_D_SKIP, interval=0.8):
                 continue
             if self.appear_then_click(self.I_D_CONFIRM, interval=0.8):
+                continue
+            if self.appear(self.I_D_CONFIRM):
+                continue
+            if self._recover_reward_screen():
+                self.check_reward()
+                self.screenshot()
+                if self.appear(self.I_D_CONFIRM) or self.appear(self.I_D_START):
+                    continue
+                if not self.ocr_appear(self.O_D_NAME):
+                    logger.info(f'委派“{name}”的领奖流程已结束，当前列表中已无该委派')
+                    return False
                 continue
             if self.ocr_appear_click(self.O_D_NAME, interval=1):
                 continue
@@ -109,9 +113,11 @@ class ScriptTask(GameUi, DelegationAssets):
         return False
 
     def _handle_reward_screen(self):
+        if self.appear(self.I_D_CONFIRM) or self.appear(self.I_D_START):
+            return None
         # 名字牌会留在领奖弹窗后面，先处理按钮，不能只凭名字继续对话。
         for button in (self.I_REWARDS_DONE, self.I_REWARDS_GET, self.I_REWARDS_FALSE,
-                       self.I_REWARDS_CHAT, self.I_CHAT_1, self.I_CHAT_2):
+                       self.I_CHAT_1, self.I_CHAT_2):
             if self.appear(button):
                 if self.appear_then_click(button, interval=1):
                     return button
@@ -150,6 +156,8 @@ class ScriptTask(GameUi, DelegationAssets):
         click_count = 0
         while 1:
             self.screenshot()
+            if self.appear(self.I_D_CONFIRM) or self.appear(self.I_D_START):
+                return
             clicked = self._handle_reward_screen()
             if clicked is not None:
                 if last_button is not None and last_button != clicked:

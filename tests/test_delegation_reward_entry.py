@@ -123,7 +123,7 @@ class DelegationRewardEntryTest(unittest.TestCase):
 
     def test_reward_dialog_is_handled_before_map_ocr(self):
         task = MapRewardTask()
-        task.clicks.extend(['REWARDS_CHAT', 'REWARDS_DONE'])
+        task.clicks.extend(['REWARDS_GET', 'REWARDS_DONE'])
         task.check_reward()
         self.assertFalse(task.clicks)
         self.assertTrue(task.claimed)

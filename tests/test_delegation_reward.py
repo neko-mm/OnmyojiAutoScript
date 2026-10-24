@@ -53,6 +53,8 @@ class Device:
 
 
 class RewardTask:
+    I_D_CONFIRM = 'CONFIRM'
+    I_D_START = 'START'
     O_D_DONE = 'D_DONE'
     I_REWARDS_GET = 'REWARDS_GET'
     I_REWARDS_CHAT = 'REWARDS_CHAT'
@@ -96,17 +98,17 @@ class RewardTask:
 
 class DelegationRewardTest(unittest.TestCase):
     def test_reward_stage_change_does_not_trigger_two_button_guard(self):
-        task = RewardTask(['D_DONE'] * 7 + ['REWARDS_CHAT'] * 6 + ['REWARDS_DONE'])
+        task = RewardTask(['D_DONE'] * 7 + ['REWARDS_GET'] * 6 + ['REWARDS_DONE'])
         load_check_reward()(task)
         self.assertFalse(task.clicks)
 
     def test_repeated_clicks_in_one_stage_still_stop(self):
-        task = RewardTask(['REWARDS_CHAT'] * 10)
+        task = RewardTask(['REWARDS_GET'] * 10)
         with self.assertRaises(TooManyClicks):
             load_check_reward()(task)
 
     def test_alternating_stages_still_have_a_total_limit(self):
-        task = RewardTask(['D_DONE', 'REWARDS_CHAT'] * 20)
+        task = RewardTask(['D_DONE', 'REWARDS_GET'] * 20)
         with self.assertRaises(TooManyClicks):
             load_check_reward()(task)
 

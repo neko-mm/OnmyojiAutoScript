@@ -140,7 +140,98 @@ class SelectionTask(DialogueTask):
         return clicked
 
 
+class DispatchTask(SelectionTask):
+    C_D_1, C_D_2, C_D_3, C_D_4, C_D_5 = 'SLOT1', 'SLOT2', 'SLOT3', 'SLOT4', 'SLOT5'
+    I_D_SELECT_1, I_D_SELECT_2, I_D_SELECT_3, I_D_SELECT_4 = 'SLOT1', 'SLOT2', 'SLOT3', 'SLOT4'
+
+    def __init__(self):
+        super().__init__()
+        self.confirm = False
+        self.start = False
+        self.slots = set()
+        self.confirm_ready = True
+
+    def appear(self, target):
+        if target == self.I_D_CONFIRM:
+            return self.confirm
+        if target == self.I_D_START:
+            return self.start
+        if target in (self.I_D_SELECT_1, self.I_D_SELECT_2, self.I_D_SELECT_3, self.I_D_SELECT_4):
+            return target in self.slots
+        return super().appear(target)
+
+    def appear_then_click(self, target, interval, action=None):
+        if target == self.I_D_CONFIRM and self.confirm:
+            if not self.confirm_ready:
+                self.confirm_ready = True
+                return False
+            self.confirm = False
+            self.start = True
+            self.actions.append(('dispatch',))
+            return True
+        if target == self.I_D_START and self.start:
+            self.start = False
+            self.actions.append(('start',))
+            return True
+        # 复现最后一页伊吹对话结束后，切到神乐的派遣详情。
+        clicked = DialogueTask.appear_then_click(self, target, interval, action)
+        if clicked and target == self.I_REWARDS_IBUKI_DIALOGUE and self.pages == 0:
+            self.confirm = True
+            self.panel_collapsed = True
+        return clicked
+
+    def click(self, target, interval):
+        if target == self.C_D_5:
+            return False
+        self.slots.add(target)
+        return True
+
+
 class DelegationDialogueTest(unittest.TestCase):
+    def test_open_dialogue_then_dispatch_detail_continues_to_start(self):
+        task = DispatchTask()
+        task.delegate_one('猫老大')
+        self.assertIn(('dispatch',), task.actions)
+        self.assertIn(('start',), task.actions)
+        self.assertEqual(len(task.slots), 4)
+        self.assertNotIn(('expand_list',), task.actions)
+
+    def test_dispatch_button_cooldown_does_not_fall_into_reward_recovery(self):
+        task = DispatchTask()
+        task.confirm = True
+        task.confirm_ready = False
+        task.pages = 1
+        task.delegate_one('猫老大')
+        self.assertIn(('start',), task.actions)
+        self.assertFalse(any(action[0] == 'IBUKI_DIALOGUE' for action in task.actions))
+
+    def test_collapsed_arrow_is_not_a_reward_dialogue_button(self):
+        task = SelectionTask()
+        task.panel_collapsed = True
+        original_appear = task.appear
+        task.appear = lambda target: target == task.I_REWARDS_CHAT or original_appear(target)
+        original_click = task.appear_then_click
+        def click_arrow(target, interval, action=None):
+            if target == task.I_REWARDS_CHAT:
+                task.device.click(target)
+                task.panel_collapsed = not task.panel_collapsed
+                return True
+            return original_click(target, interval, action)
+        task.appear_then_click = click_arrow
+        task.check_reward()
+        self.assertEqual(task.actions, [('expand_list',)])
+        self.assertNotIn(task.I_REWARDS_CHAT, task.device.click_record)
+
+    def test_dispatch_popup_stops_reward_collection_without_clicking_arrow(self):
+        task = SelectionTask()
+        task.pages = 1
+        task.panel_collapsed = True
+        original_appear = task.appear
+        task.appear = lambda target: target in (task.I_D_CONFIRM, task.I_REWARDS_CHAT) or original_appear(target)
+        task.check_reward()
+        self.assertEqual(task.actions, [])
+        self.assertEqual(task.pages, 1)
+
     def test_completed_task_selected_by_name_recovers_full_reward_flow(self):
         task = SelectionTask()
         self.assertFalse(task.delegate_one('猫老大'))
@@ -220,7 +311,7 @@ class DelegationDialogueTest(unittest.TestCase):
         self.assertEqual(len(task.actions), 1)
 
     def test_other_reward_controls_take_priority_over_nameplate(self):
-        for button in ('REWARDS_GET', 'REWARDS_FALSE', 'REWARDS_CHAT', 'CHAT_1', 'CHAT_2'):
+        for button in ('REWARDS_GET', 'REWARDS_FALSE', 'CHAT_1', 'CHAT_2'):
             with self.subTest(button=button):
                 task = DialogueTask()
                 task.clicks.append(button)
