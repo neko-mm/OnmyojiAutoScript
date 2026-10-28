@@ -52,6 +52,8 @@ class DelegationAssets:
 
 
 	# Image Rule Assets
+	# 委派对话的源博雅名字牌
+	I_REWARDS_HIROMASA_DIALOGUE = RuleImage(roi_front=(830,530,105,38), roi_back=(800,520,190,65), threshold=0.85, method="Template matching", file="./tasks/Delegation/rewards/rewards_hiromasa_dialogue.png")
 	# 展开收起的委派列表
 	I_REWARDS_PANEL_COLLAPSED = RuleImage(roi_front=(1176,132,41,50), roi_back=(1150,100,100,100), threshold=0.85, method="Template matching", file="./tasks/Delegation/rewards/rewards_panel_collapsed.png")
 	# 委派对话的伊吹名字牌

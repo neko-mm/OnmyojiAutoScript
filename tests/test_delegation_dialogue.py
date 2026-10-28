@@ -32,6 +32,7 @@ def load_methods():
 
 class DialogueTask(RewardTask):
     I_REWARDS_IBUKI_DIALOGUE = 'IBUKI_DIALOGUE'
+    I_REWARDS_HIROMASA_DIALOGUE = 'HIROMASA_DIALOGUE'
     C_REWARDS_DIALOGUE_CONTINUE = 'DIALOGUE_CONTINUE'
 
     def __init__(self, pages=3, complete=False):
@@ -85,6 +86,24 @@ class DialogueTask(RewardTask):
 
     def set_next_run(self, **kwargs):
         self.actions.append(('scheduled', kwargs))
+
+
+class HiromasaTask(DialogueTask):
+    def __init__(self, speakers=None, complete=False):
+        self.speakers = list(speakers if speakers is not None else ['HIROMASA_DIALOGUE'] * 3)
+        super().__init__(pages=len(self.speakers), complete=complete)
+
+    def appear_then_click(self, target, interval, action=None):
+        if target in (self.I_REWARDS_IBUKI_DIALOGUE, self.I_REWARDS_HIROMASA_DIALOGUE):
+            if not self.pages or not self.speakers or target != self.speakers[0]:
+                return False
+            self.device.click(target)
+            self.actions.append((target, action, interval))
+            if not self.complete:
+                self.speakers.pop(0)
+                self.pages -= 1
+            return True
+        return super().appear_then_click(target, interval, action)
 
 
 class SelectionTask(DialogueTask):
@@ -188,6 +207,46 @@ class DispatchTask(SelectionTask):
 
 
 class DelegationDialogueTest(unittest.TestCase):
+    def test_hiromasa_dialogue_is_closed_before_navigation(self):
+        task = HiromasaTask()
+        with self.assertRaises(TaskEnd):
+            task.run()
+        self.assertEqual(task.pages, 0)
+        self.assertEqual(task.actions[3], ('arrived', 'delegation'))
+        self.assertTrue(all(action[1] == 'DIALOGUE_CONTINUE' for action in task.actions[:3]))
+
+    def test_hiromasa_marker_is_only_the_nameplate_and_search_covers_it(self):
+        folder = ROOT / 'tasks/Delegation/rewards'
+        rule = next(rule for rule in json.loads((folder / 'image.json').read_text())
+                    if rule['itemName'] == 'rewards_hiromasa_dialogue')
+        self.assertEqual(struct.unpack('!II', (folder / rule['imageName']).read_bytes()[16:24]),
+                         (105, 38))
+        x, y, w, h = map(int, rule['roiFront'].split(','))
+        rx, ry, rw, rh = map(int, rule['roiBack'].split(','))
+        self.assertTrue(rx <= x and ry <= y and x+w <= rx+rw and y+h <= ry+rh)
+        self.assertGreaterEqual(rule['threshold'], 0.85)
+
+    def test_dialogue_can_switch_between_ibuki_and_hiromasa(self):
+        task = HiromasaTask(['HIROMASA_DIALOGUE', 'IBUKI_DIALOGUE', 'HIROMASA_DIALOGUE'])
+        task.check_reward()
+        self.assertEqual(task.pages, 0)
+        self.assertEqual([action[0] for action in task.actions],
+                         ['HIROMASA_DIALOGUE', 'IBUKI_DIALOGUE', 'HIROMASA_DIALOGUE'])
+
+    def test_reward_handler_reports_actual_speaker_for_click_records(self):
+        task = HiromasaTask()
+        self.assertEqual(task._handle_reward_screen(), task.I_REWARDS_HIROMASA_DIALOGUE)
+
+    def test_hiromasa_completion_button_still_takes_priority(self):
+        task = HiromasaTask(complete=True)
+        self.assertTrue(task._recover_reward_screen())
+        self.assertEqual(task.actions[0][0], 'REWARDS_DONE')
+
+    def test_unresponsive_hiromasa_dialogue_keeps_click_guard(self):
+        task = HiromasaTask(['HIROMASA_DIALOGUE'] * 20)
+        with self.assertRaises(TooManyClicks):
+            task.check_reward()
+
     def test_open_dialogue_then_dispatch_detail_continues_to_start(self):
         task = DispatchTask()
         task.delegate_one('猫老大')

@@ -106,11 +106,12 @@ class ScriptTask(GameUi, DelegationAssets):
         # self.ui_click_until_disappear(self.I_D_START)
 
     def _advance_reward_dialogue(self):
-        if self.appear_then_click(self.I_REWARDS_IBUKI_DIALOGUE,
-                                  action=self.C_REWARDS_DIALOGUE_CONTINUE, interval=1):
-            logger.info('继续式神委派的伊吹对话')
-            return True
-        return False
+        for marker, speaker in ((self.I_REWARDS_IBUKI_DIALOGUE, '伊吹'),
+                                (self.I_REWARDS_HIROMASA_DIALOGUE, '源博雅')):
+            if self.appear_then_click(marker, action=self.C_REWARDS_DIALOGUE_CONTINUE, interval=1):
+                logger.info(f'继续式神委派的{speaker}对话')
+                return marker
+        return None
 
     def _handle_reward_screen(self):
         if self.appear(self.I_D_CONFIRM) or self.appear(self.I_D_START):
@@ -122,9 +123,7 @@ class ScriptTask(GameUi, DelegationAssets):
                 if self.appear_then_click(button, interval=1):
                     return button
                 return None
-        if self._advance_reward_dialogue():
-            return self.I_REWARDS_IBUKI_DIALOGUE
-        return None
+        return self._advance_reward_dialogue() or None
 
     def _recover_reward_screen(self):
         return self._handle_reward_screen() is not None

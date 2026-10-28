@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "rewards_hiromasa_dialogue",
+    "imageName": "rewards_hiromasa_dialogue.png",
+    "roiFront": "830,530,105,38",
+    "roiBack": "800,520,190,65",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "委派对话的源博雅名字牌"
+  },
+  {
     "itemName": "rewards_panel_collapsed",
     "imageName": "rewards_panel_collapsed.png",
     "roiFront": "1176,132,41,50",
