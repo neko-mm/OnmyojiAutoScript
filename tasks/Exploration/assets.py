@@ -60,7 +60,7 @@ class ExplorationAssets:
 	# 进入难度选择界面 
 	I_E_EXPLORATION_OPEN = RuleImage(roi_front=(1091,591,82,66), roi_back=(867,538,339,165), threshold=0.8, method="Template matching", file="./tasks/Exploration/res/res_e_exploration_open.png")
 	# 探索按钮 
-	I_E_EXPLORATION_CLICK = RuleImage(roi_front=(1090,599,80,47), roi_back=(867,541,337,157), threshold=0.8, method="Template matching", file="./tasks/Exploration/res/res_e_exploration_click.png")
+	I_E_EXPLORATION_CLICK = RuleImage(roi_front=(1090,597,78,49), roi_back=(1055,550,150,145), threshold=0.8, method="Template matching", file="./tasks/Exploration/res/res_e_exploration_click.png")
 	# 自动轮换开着 
 	I_E_AUTO_ROTATE_ON = RuleImage(roi_front=(104,649,153,44), roi_back=(104,649,153,44), threshold=0.9, method="Template matching", file="./tasks/Exploration/res/res_e_auto_rotate_on.png")
 	# 自动轮换关闭 

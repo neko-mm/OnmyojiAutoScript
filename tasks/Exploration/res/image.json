@@ -11,8 +11,8 @@
   {
     "itemName": "e_exploration_click",
     "imageName": "res_e_exploration_click.png",
-    "roiFront": "1090,599,80,47",
-    "roiBack": "867,541,337,157",
+    "roiFront": "1090,597,78,49",
+    "roiBack": "1055,550,150,145",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "探索按钮"

@@ -13,7 +13,7 @@ from cached_property import cached_property
 from module.atom.image import RuleImage
 from module.atom.ocr import RuleOcr
 from module.base.timer import Timer
-from module.exception import TaskEnd
+from module.exception import TaskEnd, GamePageUnknownError
 from module.image.recipes import match_highlight_rule
 from module.logger import logger
 from tasks.Component.Costume.config import MainType
@@ -52,9 +52,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         else:
             preSuc = self.pre_work()
         if not preSuc:
-            # 无法完成预处理 很有可能你已经完成了悬赏任务
-            logger.warning('Cannot pre-work')
-            logger.warning('You may have completed the reward task')
+            logger.info('当前没有需要处理的协作悬赏')
             self.next_run()
             raise TaskEnd('WantedQuests')
 
@@ -95,7 +93,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         timeout_timer = Timer(5).start()
         while not timeout_timer.reached():
             self.screenshot()
-            if self.appear(self.I_TRACE_TRUE):
+            if self.appear(self.I_WQ_TRACE_ONE_CHECK_OPENED):
                 return True
             self.click(self.O_WQ_TEXT_ALL, interval=1.2)
         return False
@@ -122,6 +120,26 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
             next_run_datetime = next_run_datetime + time_delta
         self.set_next_run(task='WantedQuests', target=next_run_datetime)
 
+    def _trace_button_state(self):
+        results = self.O_WQ_TRACK_STATE.detect_and_ocr(self.device.image)
+        text = ''.join(''.join(result.ocr_text.split()) for result in results)
+        if text == '取消追踪':
+            return True
+        if text in ('追踪', '一键追踪'):
+            return False
+        return None
+
+    def _untrace_current(self):
+        timeout = Timer(8).start()
+        while not timeout.reached():
+            self.screenshot()
+            state = self._trace_button_state()
+            if state is False:
+                return
+            if state is True:
+                self.click(self.C_WQ_DETAIL_TRACE, interval=1.5)
+        raise GamePageUnknownError('悬赏详情取消追踪未成功，请检查右下角追踪按钮')
+
     def pre_work(self):
         """
         前置工作，
@@ -139,6 +157,8 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
                 continue
             if self.appear_then_click(self.I_TRACE_ENABLE, interval=1):
                 continue
+            if self._trace_button_state() is True:
+                break
             if self.special_main and self.click(self.C_SPECIAL_MAIN, interval=3):
                 logger.info('Click special main left to find wanted quests')
                 continue
@@ -146,8 +166,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
                 if not done_timer.started():
                     done_timer.start()
             if done_timer.started() and done_timer.reached():
-                self.ui_click_until_disappear(self.I_UI_BACK_RED)
-                return False
+                raise GamePageUnknownError('未识别到悬赏追踪按钮，不能判断任务已完成，请检查悬赏界面')
         # 已追踪所有任务
         logger.info('All wanted quests are traced')
 
@@ -171,6 +190,8 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
             self.screenshot()
             if self.appear(self.I_TRACE_ENABLE) or self.appear(self.I_TRACE_DISABLE):
                 break
+            if self._trace_button_state() is not None:
+                break
             if self.appear_then_click(self.I_WQ_SEAL, interval=1):
                 continue
             if self.appear_then_click(self.I_WQ_DONE, interval=1):
@@ -182,8 +203,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
                 if not done_timer.started():
                     done_timer.start()
             if done_timer.started() and done_timer.reached():
-                self.ui_click_until_disappear(self.I_UI_BACK_RED)
-                return False
+                raise GamePageUnknownError('未识别到协作悬赏追踪按钮，请检查悬赏界面')
 
         if not (self.appear(self.I_WQ_INVITE_1) or self.appear(self.I_WQ_INVITE_2) or self.appear(self.I_WQ_INVITE_3)):
             logger.info("there is no cooperation quest")
@@ -233,19 +253,19 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         if not self.appear(self.I_GOTO_1):
             # 如果没有出现 '前往'按钮， 那就是这个可能是神秘任务但是没有解锁
             logger.info('This is a secret mission but not unlock')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
+            self._untrace_current()
             return False
         # 跳过不想打的
         monster_name = self.O_WQ_MONSTER_TYPE.detect_text(self.device.image)
         if monster_name in self.unwanted_boss_name_list:
             logger.warning(f'unwanted {monster_name}')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
+            self._untrace_current()
             return False
         # 获取排序后的悬赏信息列表
         ordered_wq_infos = self.get_ordered_wq_infos(num_want)
         if not ordered_wq_infos:
             logger.info('Current wanted quest skipped all, cancel it')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
+            self._untrace_current()
             return False
         wq_call_dict: dict[WQType, Callable] = {
             WQType.CHALLENGE: self.challenge,
@@ -256,7 +276,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         wq_info = self.get_need_exec_wq(ordered_wq_infos)
         if not wq_info:
             logger.info('Current wanted quests can not be executed')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
+            self._untrace_current()
             return False
         try:
             logger.info(f'Choose wq: {wq_info}')
@@ -313,7 +333,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         """
         wq_type_txt = type_rule.ocr(self.device.image)
         # 适配老逻辑, 将式神碎片改为挑战
-        wq_type_txt = '挑战' if wq_type_txt == '式神' else wq_type_txt
+        wq_type_txt = '挑战' if wq_type_txt.startswith('式神') else wq_type_txt
         if wq_type_txt == '' or not WQType.contains(wq_type_txt):
             logger.warning(f'Unknown wq type: {wq_type_txt}')
             return None
@@ -323,6 +343,8 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
             logger.warning(f'{wq_type.value} is not in the order list')
             return None
         wq_info_txt = info_rule.ocr(self.device.image)
+        if wq_type == WQType.CHALLENGE:
+            wq_info_txt = wq_info_txt.lstrip('碎片 ')
         wq_info_txt = wq_info_txt.replace('：', ':').replace('（', '(').replace('）', ')')
         import re
         match = re.search(r"(.+?)\s*\(?[数教]量[:：]\s*(\d+)", wq_info_txt)
