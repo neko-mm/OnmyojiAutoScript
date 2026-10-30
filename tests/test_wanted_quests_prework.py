@@ -106,7 +106,7 @@ class Task:
 
 class WantedPreworkTest(unittest.TestCase):
     def test_updated_templates_fit_their_search_areas_and_source_coordinates(self):
-        updated = {'trace_enable', 'goto_1', 'goto_2', 'goto_3', 'goto_4',
+        updated = {'trace_enable', 'trace_disable', 'goto_1', 'goto_2', 'goto_3', 'goto_4',
                    'wq_trace_one_check_opened', 'wqc_fire', 'wqse_fire', 'e_exploration_click'}
         for task in ('WantedQuests', 'Exploration'):
             for path in (ROOT / 'tasks' / task).rglob('*.json'):
@@ -171,7 +171,7 @@ class WantedPreworkTest(unittest.TestCase):
 
     def test_only_exact_tracking_text_is_accepted(self):
         for text, expected in [('一键\n追踪', False), ('追踪', False),
-                               ('取消追踪', True), ('下次刷新', None), ('追踪奖励', None)]:
+                               ('取消追踪', True), ('消\n追踪', True), ('下次刷新', None), ('追踪奖励', None)]:
             with self.subTest(text=text):
                 self.assertIs(Task(text=text)._trace_button_state(), expected)
 

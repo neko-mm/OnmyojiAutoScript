@@ -123,7 +123,8 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
     def _trace_button_state(self):
         results = self.O_WQ_TRACK_STATE.detect_and_ocr(self.device.image)
         text = ''.join(''.join(result.ocr_text.split()) for result in results)
-        if text == '取消追踪':
+        # “取消追踪”分两行显示，OCR 常漏掉“取”，只剩“消追踪”
+        if text in ('取消追踪', '消追踪'):
             return True
         if text in ('追踪', '一键追踪'):
             return False

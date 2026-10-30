@@ -29,8 +29,8 @@
   {
     "itemName": "trace_disable",
     "imageName": "wq_trace_disable.png",
-    "roiFront": "1091,586,108,70",
-    "roiBack": "1091,586,108,70",
+    "roiFront": "1147,604,82,80",
+    "roiBack": "1115,570,145,140",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "取消追踪"
