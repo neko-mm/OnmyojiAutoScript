@@ -146,11 +146,11 @@
   {
     "itemName": "check_friends",
     "imageName": "page_check_friends.png",
-    "roiFront": "74,628,58,66",
-    "roiBack": "74,628,58,66",
+    "roiFront": "609,52,60,34",
+    "roiBack": "599,42,80,54",
     "method": "Template matching",
     "threshold": 0.8,
-    "description": "好友页面标志"
+    "description": "好友页面顶部标题（兼容最近标签）"
   },
   {
     "itemName": "check_daily",
