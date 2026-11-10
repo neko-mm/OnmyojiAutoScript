@@ -76,6 +76,9 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
                 break
             if self.appear_then_click(self.I_UI_CONFIRM, interval=1):
                 continue
+            # 每周奖励次数确认弹窗（新版小按钮）
+            if self.appear_then_click(self.I_ST_FIRE_CONFIRM, interval=1):
+                continue
             if self.appear_then_click(self.I_ST_FIRE, interval=4):
                 # 修正已经挑战的次数, 注意这个是战斗开始之前的次数
                 current, current_success, total = self.O_TIMES.ocr(self.device.image)

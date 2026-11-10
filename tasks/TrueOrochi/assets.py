@@ -35,7 +35,7 @@ class TrueOrochiAssets:
 	# 点击挑战60体力 
 	I_ST_FIRE = RuleImage(roi_front=(960,485,100,100), roi_back=(960,485,100,100), threshold=0.8, method="Template matching", file="./tasks/TrueOrochi/st/st_st_fire.png")
 	# 确认挑战 
-	I_ST_FIRE_CONFIRM = RuleImage(roi_front=(671,406,176,53), roi_back=(671,406,176,53), threshold=0.8, method="Template matching", file="./tasks/TrueOrochi/st/st_st_fire_confirm.png")
+	I_ST_FIRE_CONFIRM = RuleImage(roi_front=(671,412,166,52), roi_back=(640,390,230,100), threshold=0.8, method="Template matching", file="./tasks/TrueOrochi/st/st_st_fire_confirm.png")
 	# 十个式神的准备 
 	I_ST_FIRE_PREPARE = RuleImage(roi_front=(1118,548,100,100), roi_back=(1118,548,100,100), threshold=0.8, method="Template matching", file="./tasks/TrueOrochi/st/st_st_fire_prepare.png")
 	# description 

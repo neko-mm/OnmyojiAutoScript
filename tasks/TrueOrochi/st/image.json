@@ -20,8 +20,8 @@
   {
     "itemName": "st_fire_confirm",
     "imageName": "st_st_fire_confirm.png",
-    "roiFront": "671,406,176,53",
-    "roiBack": "671,406,176,53",
+    "roiFront": "671,412,166,52",
+    "roiBack": "640,390,230,100",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "确认挑战"
