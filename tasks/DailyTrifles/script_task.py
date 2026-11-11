@@ -479,6 +479,10 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
                 continue
         self.config.daily_trifles.done_record.sushi_dt = datetime.now()
 
+    def _one_complete_enabled(self) -> bool:
+        """一键完成按钮可点击时为亮橙色（均值约 166），事务全部完成后变暗（均值约 83）"""
+        return float(self.I_ONE_COMPLETE.corp(self.device.image).mean()) > 125
+
     def run_courtyard_affairs(self):
         """庭院事务"""
         logger.hr('庭院事务', 2)
@@ -507,6 +511,10 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         while not complete_timer.reached():
             self.screenshot()
             if clicked and not self.appear(self.I_ONE_COMPLETE):
+                completed = True
+                break
+            if self.appear(self.I_ONE_COMPLETE) and not self._one_complete_enabled():
+                logger.info('庭院事务已全部完成，一键完成按钮不可点击')
                 completed = True
                 break
             if self.appear_then_click(self.I_ONE_COMPLETE, interval=1):
