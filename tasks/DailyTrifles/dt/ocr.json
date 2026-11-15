@@ -1,5 +1,32 @@
 [
   {
+    "itemName": "courtyard_soul_1",
+    "roiFront": "190,428,170,36",
+    "roiBack": "190,428,170,36",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "左侧六星御魂名称"
+  },
+  {
+    "itemName": "courtyard_soul_2",
+    "roiFront": "556,428,170,36",
+    "roiBack": "556,428,170,36",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "中间六星御魂名称"
+  },
+  {
+    "itemName": "courtyard_soul_3",
+    "roiFront": "922,428,170,36",
+    "roiBack": "922,428,170,36",
+    "mode": "Single",
+    "method": "Default",
+    "keyword": "",
+    "description": "右侧六星御魂名称"
+  },
+  {
     "itemName": "dt_gw_name",
     "roiFront": "257,135,195,446",
     "roiBack": "257,135,195,446",

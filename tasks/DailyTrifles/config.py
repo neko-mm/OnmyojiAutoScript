@@ -9,6 +9,13 @@ from tasks.Component.config_base import ConfigBase, dynamic_hide, DateTime, Mult
 from enum import Enum
 
 
+COURTYARD_SOUL_PRIORITY = (
+    '招财猫', '火灵', '蚌精', '共潜', '薙魂', '返魂香', '木魅', '狂骨',
+    '针女', '破势', '网切', '海月火玉', '鸣屋', '荒骷髅', '魅妖',
+    '魍魉之匣', '雪幽魂', '钟灵',
+)
+
+
 class SummonType(str, Enum):
     default = '普通召唤'
     recall = '今忆召唤'

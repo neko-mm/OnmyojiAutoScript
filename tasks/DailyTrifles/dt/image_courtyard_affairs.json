@@ -1,5 +1,50 @@
 [
   {
+    "itemName": "courtyard_soul_title",
+    "imageName": "dt_courtyard_soul_title.png",
+    "roiFront": "431,120,415,50",
+    "roiBack": "410,105,455,80",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "请选择获得的六星御魂标题"
+  },
+  {
+    "itemName": "courtyard_soul_select_1",
+    "imageName": "dt_courtyard_soul_select.png",
+    "roiFront": "202,571,88,35",
+    "roiBack": "180,555,130,65",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "左侧御魂选择按钮"
+  },
+  {
+    "itemName": "courtyard_soul_select_2",
+    "imageName": "dt_courtyard_soul_select.png",
+    "roiFront": "594,571,88,35",
+    "roiBack": "570,555,140,65",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "中间御魂选择按钮"
+  },
+  {
+    "itemName": "courtyard_soul_select_3",
+    "imageName": "dt_courtyard_soul_select.png",
+    "roiFront": "988,571,88,35",
+    "roiBack": "970,555,135,65",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "右侧御魂选择按钮"
+  },
+  {
+    "itemName": "daily_sign_draw",
+    "imageName": "dt_daily_sign_draw.png",
+    "roiFront": "608,169,63,182",
+    "roiBack": "590,145,100,230",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "每日一签签筒标签"
+  },
+  {
     "itemName": "enter_courtyard_affairs",
     "imageName": "dt_enter_courtyard_affairs.png",
     "roiFront": "990,372,25,30",

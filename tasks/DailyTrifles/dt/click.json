@@ -1,5 +1,29 @@
 [
   {
+    "itemName": "courtyard_soul_1",
+    "roiFront": "202,571,88,35",
+    "roiBack": "202,571,88,35",
+    "description": "选择左侧六星御魂"
+  },
+  {
+    "itemName": "courtyard_soul_2",
+    "roiFront": "594,571,88,35",
+    "roiBack": "594,571,88,35",
+    "description": "选择中间六星御魂"
+  },
+  {
+    "itemName": "courtyard_soul_3",
+    "roiFront": "988,571,88,35",
+    "roiBack": "988,571,88,35",
+    "description": "选择右侧六星御魂"
+  },
+  {
+    "itemName": "daily_sign_draw",
+    "roiFront": "605,184,70,145",
+    "roiBack": "605,184,70,145",
+    "description": "点击每日一签签筒抽签"
+  },
+  {
     "itemName": "dt_gw_click_input",
     "roiFront": "38,0,911,40",
     "roiBack": "38,0,911,40",

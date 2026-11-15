@@ -11,6 +11,14 @@ class DailyTriflesAssets:
 
 
 	# Click Rule Assets
+	# 选择左侧六星御魂
+	C_COURTYARD_SOUL_1 = RuleClick(roi_front=(202,571,88,35), roi_back=(202,571,88,35), name="courtyard_soul_1")
+	# 选择中间六星御魂
+	C_COURTYARD_SOUL_2 = RuleClick(roi_front=(594,571,88,35), roi_back=(594,571,88,35), name="courtyard_soul_2")
+	# 选择右侧六星御魂
+	C_COURTYARD_SOUL_3 = RuleClick(roi_front=(988,571,88,35), roi_back=(988,571,88,35), name="courtyard_soul_3")
+	# 点击每日一签签筒抽签
+	C_DAILY_SIGN_DRAW = RuleClick(roi_front=(605,184,70,145), roi_back=(605,184,70,145), name="daily_sign_draw")
 	# 寮祈愿点击输入框 
 	C_DT_GW_CLICK_INPUT = RuleClick(roi_front=(38,0,911,40), roi_back=(38,0,911,40), name="dt_gw_click_input")
 	# 点击昵称搜索区域 
@@ -18,6 +26,16 @@ class DailyTriflesAssets:
 
 
 	# Image Rule Assets
+	# 请选择获得的六星御魂标题
+	I_COURTYARD_SOUL_TITLE = RuleImage(roi_front=(431,120,415,50), roi_back=(410,105,455,80), threshold=0.9, method="Template matching", file="./tasks/DailyTrifles/dt/dt_courtyard_soul_title.png")
+	# 左侧御魂选择按钮
+	I_COURTYARD_SOUL_SELECT_1 = RuleImage(roi_front=(202,571,88,35), roi_back=(180,555,130,65), threshold=0.85, method="Template matching", file="./tasks/DailyTrifles/dt/dt_courtyard_soul_select.png")
+	# 中间御魂选择按钮
+	I_COURTYARD_SOUL_SELECT_2 = RuleImage(roi_front=(594,571,88,35), roi_back=(570,555,140,65), threshold=0.85, method="Template matching", file="./tasks/DailyTrifles/dt/dt_courtyard_soul_select.png")
+	# 右侧御魂选择按钮
+	I_COURTYARD_SOUL_SELECT_3 = RuleImage(roi_front=(988,571,88,35), roi_back=(970,555,135,65), threshold=0.85, method="Template matching", file="./tasks/DailyTrifles/dt/dt_courtyard_soul_select.png")
+	# 每日一签签筒标签
+	I_DAILY_SIGN_DRAW = RuleImage(roi_front=(608,169,63,182), roi_back=(590,145,100,230), threshold=0.85, method="Template matching", file="./tasks/DailyTrifles/dt/dt_daily_sign_draw.png")
 	# 进入庭院事务标志 
 	I_ENTER_COURTYARD_AFFAIRS = RuleImage(roi_front=(990,372,25,30), roi_back=(696,349,343,231), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_enter_courtyard_affairs.png")
 	# 狐栖归处皮肤的庭院事务入口
@@ -103,6 +121,12 @@ class DailyTriflesAssets:
 
 
 	# Ocr Rule Assets
+	# 左侧六星御魂名称
+	O_COURTYARD_SOUL_1 = RuleOcr(roi=(190,428,170,36), area=(190,428,170,36), mode="Single", method="Default", keyword="", name="courtyard_soul_1")
+	# 中间六星御魂名称
+	O_COURTYARD_SOUL_2 = RuleOcr(roi=(556,428,170,36), area=(556,428,170,36), mode="Single", method="Default", keyword="", name="courtyard_soul_2")
+	# 右侧六星御魂名称
+	O_COURTYARD_SOUL_3 = RuleOcr(roi=(922,428,170,36), area=(922,428,170,36), mode="Single", method="Default", keyword="", name="courtyard_soul_3")
 	# 用户昵称 
 	O_DT_GW_NAME = RuleOcr(roi=(257,135,195,446), area=(257,135,195,446), mode="Full", method="Default", keyword="", name="dt_gw_name")
 

@@ -14,12 +14,12 @@ from tasks.DailyTrifles.page import page_store_gift_room, page_friends_luck, pag
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import page_main, page_summon, page_guild, page_mall, page_friends, page_courtyard_affairs
-from tasks.DailyTrifles.config import DailyTriflesConfig
+from tasks.DailyTrifles.config import DailyTriflesConfig, COURTYARD_SOUL_PRIORITY
 from tasks.DailyTrifles.assets import DailyTriflesAssets
 from tasks.Component.Summon.summon import Summon
 
 from module.logger import logger
-from module.exception import TaskEnd
+from module.exception import TaskEnd, GamePageUnknownError
 from module.base.timer import Timer
 from tasks.DailyTrifles.config import SummonType
 import re
@@ -483,6 +483,95 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         """一键完成按钮可点击时为亮橙色（均值约 166），事务全部完成后变暗（均值约 83）"""
         return float(self.I_ONE_COMPLETE.corp(self.device.image).mean()) > 125
 
+    def _background_brightness(self):
+        return float(self.device.image[0:70, 0:400].mean())
+
+    def _background_is_clear(self, reference):
+        # 弹窗遮罩下仍可能认出背景按钮，不能仅凭按钮存在判断已回到原页面。
+        return reference > 0 and self._background_brightness() >= reference * 0.9
+
+    def _handle_courtyard_soul_choice(self):
+        if not self.appear(self.I_COURTYARD_SOUL_TITLE):
+            return False
+        buttons = (self.I_COURTYARD_SOUL_SELECT_1, self.I_COURTYARD_SOUL_SELECT_2,
+                   self.I_COURTYARD_SOUL_SELECT_3)
+        if not all(self.appear(button) for button in buttons):
+            return True
+        rules = (self.O_COURTYARD_SOUL_1, self.O_COURTYARD_SOUL_2, self.O_COURTYARD_SOUL_3)
+        names = [''.join((rule.ocr(self.device.image) or '').split()).strip('·。．、，,：:；;')
+                 for rule in rules]
+        if not all(names):
+            return True
+        ranks = {name: index for index, name in enumerate(COURTYARD_SOUL_PRIORITY)}
+        chosen = min(range(3), key=lambda index: ranks.get(names[index], len(ranks)))
+        targets = (self.C_COURTYARD_SOUL_1, self.C_COURTYARD_SOUL_2, self.C_COURTYARD_SOUL_3)
+        if self.click(targets[chosen], interval=1.5):
+            self._courtyard_soul_pending = True
+            reason = '按偏好选择' if names[chosen] in ranks else '均不在偏好名单中，选择最左侧'
+            logger.info(f'六星御魂候选：{"、".join(names)}；{reason}：{names[chosen]}')
+        return True
+
+    def _complete_courtyard_affairs(self):
+        reference = self._background_brightness()
+        timeout = Timer(30).start()
+        clear_frames = 0
+        self._courtyard_soul_pending = False
+        while not timeout.reached():
+            self.screenshot()
+            if self._handle_courtyard_soul_choice():
+                clear_frames = 0
+                continue
+            if self.ui_reward_appear_click():
+                clear_frames = 0
+                continue
+            if self._courtyard_soul_pending:
+                if self.appear_then_click(self.I_UI_CONFIRM, interval=1) or \
+                        self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1):
+                    clear_frames = 0
+                    continue
+            if not self._background_is_clear(reference) or not self.appear(self.I_ONE_COMPLETE):
+                clear_frames = 0
+                continue
+            if not self._one_complete_enabled():
+                clear_frames += 1
+                if clear_frames >= 2:
+                    logger.info('庭院事务已全部完成，奖励弹窗已关闭')
+                    return
+                continue
+            clear_frames = 0
+            self.appear_then_click(self.I_ONE_COMPLETE, interval=1)
+        raise GamePageUnknownError('庭院事务尚未完成，可能停在御魂选择或领奖弹窗；本次不记录为已完成')
+
+    def _finish_fox_daily_sign(self, reference):
+        timeout = Timer(25).start()
+        seen_popup = False
+        clear_frames = 0
+        while not timeout.reached():
+            self.screenshot()
+            if self.appear(self.I_DAILY_SIGN_DRAW):
+                seen_popup = True
+                clear_frames = 0
+                if self.appear_then_click(self.I_DAILY_SIGN_DRAW, action=self.C_DAILY_SIGN_DRAW, interval=1.5):
+                    logger.info('每日一签：点击签筒抽签')
+                continue
+            if self.ui_reward_appear_click():
+                seen_popup = True
+                clear_frames = 0
+                continue
+            if self.appear(self.I_UI_BACK_RED):
+                seen_popup = True
+                clear_frames = 0
+                self.appear_then_click(self.I_UI_BACK_RED, interval=1)
+                continue
+            if seen_popup and self._background_is_clear(reference):
+                clear_frames += 1
+                if clear_frames >= 2:
+                    logger.info('每日一签已处理，确认返回庭院')
+                    return
+            else:
+                clear_frames = 0
+        raise GamePageUnknownError('每日一签尚未结束，停止后续任务；本次不记录庭院事务已完成')
+
     def run_courtyard_affairs(self):
         """庭院事务"""
         logger.hr('庭院事务', 2)
@@ -499,40 +588,22 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         if timeout_timer.reached():
             logger.info('未找到庭院事务入口，结束本项')
             return
-        while True:
+        daily_timer = Timer(10).start()
+        while not daily_timer.reached():
             self.screenshot()
             if self.appear(self.I_CHECK_IN_DAILY, interval=0.5):
                 break
             if self.appear_then_click(self.I_ENTER_DAILY, interval=1):
                 continue
-        complete_timer = Timer(8).start()
-        clicked = False
-        completed = False
-        while not complete_timer.reached():
-            self.screenshot()
-            if clicked and not self.appear(self.I_ONE_COMPLETE):
-                completed = True
-                break
-            if self.appear(self.I_ONE_COMPLETE) and not self._one_complete_enabled():
-                logger.info('庭院事务已全部完成，一键完成按钮不可点击')
-                completed = True
-                break
-            if self.appear_then_click(self.I_ONE_COMPLETE, interval=1):
-                clicked = True
-        if not completed:
-            logger.warning('庭院事务一键完成未生效，本次不记录为已完成')
-            self.goto_page(page_main)
-            return
+        else:
+            raise GamePageUnknownError('未能进入庭院事务日常列表')
+        self._complete_courtyard_affairs()
         self.goto_page(page_main)
         if fox_courtyard:
             self.screenshot()
+            reference = self._background_brightness()
             if self.appear_then_click(self.I_FOX_DAILY_SIGN, interval=1):
-                if self.wait_until_appear(self.I_UI_BACK_RED, wait_time=5):
-                    self.appear_then_click(self.I_UI_BACK_RED, interval=1)
-                    logger.info('已处理每日一签')
-                else:
-                    logger.warning('未检测到每日一签弹窗')
-                self.goto_page(page_main)
+                self._finish_fox_daily_sign(reference)
         self.config.daily_trifles.done_record.courtyard_affairs_dt = datetime.now()
 
     def run_pickup_email(self):
