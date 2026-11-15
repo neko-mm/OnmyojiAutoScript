@@ -1,5 +1,23 @@
 [
   {
+    "itemName": "daily_sign_result",
+    "imageName": "dt_daily_sign_result.png",
+    "roiFront": "472,491,104,29",
+    "roiBack": "455,477,145,60",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "每日一签结果页累计奖励标志"
+  },
+  {
+    "itemName": "courtyard_claim_success",
+    "imageName": "dt_courtyard_claim_success.png",
+    "roiFront": "301,22,181,58",
+    "roiBack": "280,10,220,85",
+    "method": "Template matching",
+    "threshold": 0.9,
+    "description": "庭院事务领取成功标题"
+  },
+  {
     "itemName": "courtyard_soul_title",
     "imageName": "dt_courtyard_soul_title.png",
     "roiFront": "431,120,415,50",

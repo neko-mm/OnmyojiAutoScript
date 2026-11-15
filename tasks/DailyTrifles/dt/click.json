@@ -1,5 +1,17 @@
 [
   {
+    "itemName": "daily_sign_close",
+    "roiFront": "520,682,240,24",
+    "roiBack": "520,682,240,24",
+    "description": "点击签文下方空白处关闭"
+  },
+  {
+    "itemName": "courtyard_claim_close",
+    "roiFront": "520,682,240,24",
+    "roiBack": "520,682,240,24",
+    "description": "点击领取成功页面下方空白处关闭"
+  },
+  {
     "itemName": "courtyard_soul_1",
     "roiFront": "202,571,88,35",
     "roiBack": "202,571,88,35",

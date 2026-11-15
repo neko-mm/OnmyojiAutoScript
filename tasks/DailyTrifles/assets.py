@@ -11,6 +11,10 @@ class DailyTriflesAssets:
 
 
 	# Click Rule Assets
+	# 点击签文下方空白处关闭
+	C_DAILY_SIGN_CLOSE = RuleClick(roi_front=(520,682,240,24), roi_back=(520,682,240,24), name="daily_sign_close")
+	# 点击领取成功页面下方空白处关闭
+	C_COURTYARD_CLAIM_CLOSE = RuleClick(roi_front=(520,682,240,24), roi_back=(520,682,240,24), name="courtyard_claim_close")
 	# 选择左侧六星御魂
 	C_COURTYARD_SOUL_1 = RuleClick(roi_front=(202,571,88,35), roi_back=(202,571,88,35), name="courtyard_soul_1")
 	# 选择中间六星御魂
@@ -26,6 +30,10 @@ class DailyTriflesAssets:
 
 
 	# Image Rule Assets
+	# 每日一签结果页累计奖励标志
+	I_DAILY_SIGN_RESULT = RuleImage(roi_front=(472,491,104,29), roi_back=(455,477,145,60), threshold=0.9, method="Template matching", file="./tasks/DailyTrifles/dt/dt_daily_sign_result.png")
+	# 庭院事务领取成功标题
+	I_COURTYARD_CLAIM_SUCCESS = RuleImage(roi_front=(301,22,181,58), roi_back=(280,10,220,85), threshold=0.9, method="Template matching", file="./tasks/DailyTrifles/dt/dt_courtyard_claim_success.png")
 	# 请选择获得的六星御魂标题
 	I_COURTYARD_SOUL_TITLE = RuleImage(roi_front=(431,120,415,50), roi_back=(410,105,455,80), threshold=0.9, method="Template matching", file="./tasks/DailyTrifles/dt/dt_courtyard_soul_title.png")
 	# 左侧御魂选择按钮

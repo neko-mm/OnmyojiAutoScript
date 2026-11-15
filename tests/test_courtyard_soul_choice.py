@@ -37,7 +37,7 @@ def load_methods():
     cls = next(n for n in ast.parse(path.read_text()).body if isinstance(n, ast.ClassDef))
     names = ('run_courtyard_affairs', '_handle_courtyard_soul_choice',
              '_complete_courtyard_affairs', '_finish_fox_daily_sign',
-             '_background_brightness', '_background_is_clear')
+             '_handle_daily_sign_popup', '_background_brightness', '_background_is_clear')
     methods = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name in names]
     scope = dict(Timer=Timer, datetime=datetime, GamePageUnknownError=UnknownPage,
                  COURTYARD_SOUL_PRIORITY=PRIORITY, page_main='main',
@@ -71,6 +71,10 @@ class CourtyardTask:
     C_COURTYARD_SOUL_1, C_COURTYARD_SOUL_2, C_COURTYARD_SOUL_3 = 'choose1', 'choose2', 'choose3'
     I_DAILY_SIGN_DRAW = 'draw_sign'
     C_DAILY_SIGN_DRAW = 'draw_area'
+    I_DAILY_SIGN_RESULT = 'sign_result'
+    C_DAILY_SIGN_CLOSE = 'sign_close_area'
+    I_COURTYARD_CLAIM_SUCCESS = 'claim_success'
+    C_COURTYARD_CLAIM_CLOSE = 'claim_close_area'
 
     def __init__(self, fox=True, sign=True, has_choice=True):
         self.fox, self.sign, self.has_choice = fox, sign, has_choice
@@ -84,6 +88,12 @@ class CourtyardTask:
         self.require_confirm = True
         self.sign_stuck = False
         self.complete_stuck = False
+        self.auto_sign = False
+        self.auto_sign_needs_draw = False
+        self.new_sign_result = False
+        self.result_stuck = False
+        self.receipt_stuck = False
+        self.receipt_goes_main = False
         self.device = SimpleNamespace(image=Frame(self))
         self.config = SimpleNamespace(daily_trifles=SimpleNamespace(
             done_record=SimpleNamespace(courtyard_affairs_dt=None)))
@@ -104,6 +114,9 @@ class CourtyardTask:
         self.actions.append(('page', page))
         self.state = 'daily' if page == 'affairs' else 'main'
 
+    def get_current_page(self):
+        return 'affairs' if self.state == 'daily' else 'main'
+
     def appear(self, target, interval=None):
         if target in ('normal_entry', 'fox_entry'):
             return self.state == 'main' and (target == 'normal_entry' or self.fox)
@@ -117,6 +130,10 @@ class CourtyardTask:
             return self.state == 'choice' and self.buttons
         if target == 'fox_sign':
             return self.state == 'main' and self.fox and self.sign
+        if target == 'sign_result':
+            return self.state == 'result' and (self.auto_sign or self.new_sign_result)
+        if target == 'claim_success':
+            return self.auto_sign and self.state in ('result', 'receipt')
         return (target, self.state) in (('confirm', 'confirm'), ('draw_sign', 'drum'), ('close', 'result'))
 
     def appear_then_click(self, target, interval=None, action=None):
@@ -133,13 +150,18 @@ class CourtyardTask:
             self.state = 'unknown' if self.sign_stuck else 'result'
         elif target == 'close':
             self.state, self.sign = 'main', False
+        elif target == 'sign_result' and not self.result_stuck:
+            self.state, self.sign = ('receipt' if self.auto_sign else 'main'), False
+        elif target == 'claim_success' and not self.receipt_stuck:
+            self.state, self.enabled = ('main' if self.receipt_goes_main else 'daily'), False
         return True
 
     def click(self, target, interval=None):
         if not self.allow_choice:
             return False
         self.actions.append(('click', target))
-        self.state = 'confirm' if self.require_confirm else 'reward'
+        self.state = ('drum' if self.auto_sign_needs_draw else 'result') if self.auto_sign else \
+            ('confirm' if self.require_confirm else 'reward')
         return True
 
     def ui_reward_appear_click(self):
@@ -157,6 +179,59 @@ class CourtyardTask:
 
 
 class CourtyardSoulChoiceTest(unittest.TestCase):
+    def test_automatic_sign_drum_is_also_handled_before_courtyard_exit(self):
+        task = CourtyardTask()
+        task.auto_sign = task.auto_sign_needs_draw = True
+        task.run_courtyard_affairs()
+        self.assertIn(('click', 'draw_sign'), task.actions)
+        self.assertIn(('click', 'sign_result'), task.actions)
+        self.assertIn(('click', 'claim_success'), task.actions)
+
+    def test_unrelated_page_does_not_trigger_sign_popup_clicks(self):
+        task = CourtyardTask()
+        task.state = 'daily'
+        self.assertFalse(task._handle_daily_sign_popup())
+        self.assertEqual(task.actions, [])
+
+    def test_automatic_sign_result_is_closed_inside_courtyard_completion(self):
+        task = CourtyardTask()
+        task.auto_sign = True
+        task.run_courtyard_affairs()
+        self.assertIsNotNone(task.config.daily_trifles.done_record.courtyard_affairs_dt)
+        self.assertIn(('click', 'choose2'), task.actions)
+        self.assertLess(task.actions.index(('click', 'sign_result')),
+                        task.actions.index(('click', 'claim_success')))
+        self.assertNotIn(('click', 'fox_sign'), task.actions)
+
+    def test_claim_success_may_return_directly_to_main(self):
+        task = CourtyardTask()
+        task.auto_sign = task.receipt_goes_main = True
+        task.run_courtyard_affairs()
+        self.assertEqual(task.state, 'main')
+        self.assertIsNotNone(task.config.daily_trifles.done_record.courtyard_affairs_dt)
+
+    def test_covered_claim_success_is_not_clicked_before_the_sign_result(self):
+        task = CourtyardTask()
+        task.auto_sign, task.result_stuck = True, True
+        with self.assertRaises(UnknownPage):
+            task.run_courtyard_affairs()
+        self.assertNotIn(('click', 'claim_success'), task.actions)
+        self.assertIsNone(task.config.daily_trifles.done_record.courtyard_affairs_dt)
+
+    def test_stuck_receipt_does_not_mark_affairs_complete(self):
+        task = CourtyardTask()
+        task.auto_sign, task.receipt_stuck = True, True
+        with self.assertRaises(UnknownPage):
+            task.run_courtyard_affairs()
+        self.assertIsNone(task.config.daily_trifles.done_record.courtyard_affairs_dt)
+
+    def test_new_result_popup_is_also_closed_after_clicking_the_sign_drum(self):
+        task = CourtyardTask()
+        task.new_sign_result = True
+        task.run_courtyard_affairs()
+        self.assertIn(('click', 'draw_sign'), task.actions)
+        self.assertIn(('click', 'sign_result'), task.actions)
+
     def test_priority_matches_the_agreed_order(self):
         tree = ast.parse((ROOT / 'tasks/DailyTrifles/config.py').read_text())
         assignment = next(n for n in tree.body if isinstance(n, ast.Assign)
@@ -236,7 +311,8 @@ class CourtyardSoulChoiceTest(unittest.TestCase):
         folder = ROOT / 'tasks/DailyTrifles/dt'
         rules = json.loads((folder / 'image_courtyard_affairs.json').read_text())
         for rule in rules:
-            if not (rule['itemName'].startswith('courtyard_soul_') or rule['itemName'] == 'daily_sign_draw'):
+            if not (rule['itemName'].startswith('courtyard_soul_') or rule['itemName'] in
+                    ('daily_sign_draw', 'daily_sign_result', 'courtyard_claim_success')):
                 continue
             with self.subTest(rule=rule['itemName']):
                 raw = (folder / rule['imageName']).read_bytes()

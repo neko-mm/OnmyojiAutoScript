@@ -511,15 +511,37 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
             logger.info(f'六星御魂候选：{"、".join(names)}；{reason}：{names[chosen]}')
         return True
 
+    def _handle_daily_sign_popup(self):
+        if self.appear(self.I_DAILY_SIGN_RESULT):
+            if self.appear_then_click(self.I_DAILY_SIGN_RESULT, action=self.C_DAILY_SIGN_CLOSE, interval=1.5):
+                logger.info('每日一签：点击空白处关闭签文结果')
+            return True
+        if self.appear(self.I_DAILY_SIGN_DRAW):
+            if self.appear_then_click(self.I_DAILY_SIGN_DRAW, action=self.C_DAILY_SIGN_DRAW, interval=1.5):
+                logger.info('每日一签：点击签筒抽签')
+            return True
+        return False
+
     def _complete_courtyard_affairs(self):
         reference = self._background_brightness()
         timeout = Timer(30).start()
         clear_frames = 0
+        receipt_seen = False
         self._courtyard_soul_pending = False
         while not timeout.reached():
             self.screenshot()
             if self._handle_courtyard_soul_choice():
                 clear_frames = 0
+                continue
+            if self._handle_daily_sign_popup():
+                clear_frames = 0
+                continue
+            if self.appear(self.I_COURTYARD_CLAIM_SUCCESS):
+                receipt_seen = True
+                clear_frames = 0
+                if self.appear_then_click(self.I_COURTYARD_CLAIM_SUCCESS,
+                                          action=self.C_COURTYARD_CLAIM_CLOSE, interval=1.5):
+                    logger.info('庭院事务：关闭领取成功页面')
                 continue
             if self.ui_reward_appear_click():
                 clear_frames = 0
@@ -529,7 +551,16 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
                         self.appear_then_click(self.I_UI_CONFIRM_SAMLL, interval=1):
                     clear_frames = 0
                     continue
-            if not self._background_is_clear(reference) or not self.appear(self.I_ONE_COMPLETE):
+            if not self._background_is_clear(reference):
+                clear_frames = 0
+                continue
+            if receipt_seen and self.get_current_page() == page_main:
+                clear_frames += 1
+                if clear_frames >= 2:
+                    logger.info('庭院事务领奖成功，确认返回庭院')
+                    return
+                continue
+            if not self.appear(self.I_ONE_COMPLETE):
                 clear_frames = 0
                 continue
             if not self._one_complete_enabled():
@@ -548,11 +579,9 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
         clear_frames = 0
         while not timeout.reached():
             self.screenshot()
-            if self.appear(self.I_DAILY_SIGN_DRAW):
+            if self._handle_daily_sign_popup():
                 seen_popup = True
                 clear_frames = 0
-                if self.appear_then_click(self.I_DAILY_SIGN_DRAW, action=self.C_DAILY_SIGN_DRAW, interval=1.5):
-                    logger.info('每日一签：点击签筒抽签')
                 continue
             if self.ui_reward_appear_click():
                 seen_popup = True
