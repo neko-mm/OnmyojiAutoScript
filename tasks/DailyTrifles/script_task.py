@@ -513,7 +513,10 @@ class ScriptTask(GameUi, Summon, DailyTriflesAssets):
 
     def _handle_daily_sign_popup(self):
         if self.appear(self.I_DAILY_SIGN_RESULT):
-            if self.appear_then_click(self.I_DAILY_SIGN_RESULT, action=self.C_DAILY_SIGN_CLOSE, interval=1.5):
+            if self.appear(self.I_DAILY_SIGN_RESULT_CLOSE):
+                if self.click(self.I_DAILY_SIGN_RESULT_CLOSE, interval=1.5):
+                    logger.info('每日一签：点击关闭按钮')
+            elif self.appear_then_click(self.I_DAILY_SIGN_RESULT, action=self.C_DAILY_SIGN_CLOSE, interval=1.5):
                 logger.info('每日一签：点击空白处关闭签文结果')
             return True
         if self.appear(self.I_DAILY_SIGN_DRAW):

@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "daily_sign_result_close",
+    "imageName": "dt_daily_sign_result_close.png",
+    "roiFront": "853,90,35,35",
+    "roiBack": "834,73,79,70",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "每日一签签文关闭按钮"
+  },
+  {
     "itemName": "daily_sign_result",
     "imageName": "dt_daily_sign_result.png",
     "roiFront": "472,491,104,29",

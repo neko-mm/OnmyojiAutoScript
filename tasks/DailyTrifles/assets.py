@@ -30,6 +30,8 @@ class DailyTriflesAssets:
 
 
 	# Image Rule Assets
+	# 每日一签签文关闭按钮
+	I_DAILY_SIGN_RESULT_CLOSE = RuleImage(roi_front=(853,90,35,35), roi_back=(834,73,79,70), threshold=0.8, method="Template matching", file="./tasks/DailyTrifles/dt/dt_daily_sign_result_close.png")
 	# 每日一签结果页累计奖励标志
 	I_DAILY_SIGN_RESULT = RuleImage(roi_front=(472,491,104,29), roi_back=(455,477,145,60), threshold=0.9, method="Template matching", file="./tasks/DailyTrifles/dt/dt_daily_sign_result.png")
 	# 庭院事务领取成功标题

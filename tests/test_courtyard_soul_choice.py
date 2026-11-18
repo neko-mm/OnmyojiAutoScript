@@ -72,6 +72,7 @@ class CourtyardTask:
     I_DAILY_SIGN_DRAW = 'draw_sign'
     C_DAILY_SIGN_DRAW = 'draw_area'
     I_DAILY_SIGN_RESULT = 'sign_result'
+    I_DAILY_SIGN_RESULT_CLOSE = 'sign_result_close'
     C_DAILY_SIGN_CLOSE = 'sign_close_area'
     I_COURTYARD_CLAIM_SUCCESS = 'claim_success'
     C_COURTYARD_CLAIM_CLOSE = 'claim_close_area'
@@ -91,6 +92,7 @@ class CourtyardTask:
         self.auto_sign = False
         self.auto_sign_needs_draw = False
         self.new_sign_result = False
+        self.sign_has_close_button = False
         self.result_stuck = False
         self.receipt_stuck = False
         self.receipt_goes_main = False
@@ -132,6 +134,8 @@ class CourtyardTask:
             return self.state == 'main' and self.fox and self.sign
         if target == 'sign_result':
             return self.state == 'result' and (self.auto_sign or self.new_sign_result)
+        if target == 'sign_result_close':
+            return self.state == 'result' and self.sign_has_close_button
         if target == 'claim_success':
             return self.auto_sign and self.state in ('result', 'receipt')
         return (target, self.state) in (('confirm', 'confirm'), ('draw_sign', 'drum'), ('close', 'result'))
@@ -150,13 +154,18 @@ class CourtyardTask:
             self.state = 'unknown' if self.sign_stuck else 'result'
         elif target == 'close':
             self.state, self.sign = 'main', False
-        elif target == 'sign_result' and not self.result_stuck:
+        elif target == 'sign_result' and not self.sign_has_close_button and not self.result_stuck:
             self.state, self.sign = ('receipt' if self.auto_sign else 'main'), False
         elif target == 'claim_success' and not self.receipt_stuck:
             self.state, self.enabled = ('main' if self.receipt_goes_main else 'daily'), False
         return True
 
     def click(self, target, interval=None):
+        if target == 'sign_result_close':
+            self.actions.append(('click', target))
+            if not self.result_stuck:
+                self.state, self.sign = ('receipt' if self.auto_sign else 'main'), False
+            return True
         if not self.allow_choice:
             return False
         self.actions.append(('click', target))
@@ -179,6 +188,20 @@ class CourtyardTask:
 
 
 class CourtyardSoulChoiceTest(unittest.TestCase):
+    def test_sign_close_button_takes_priority_when_empty_area_does_not_work(self):
+        task = CourtyardTask()
+        task.auto_sign = task.sign_has_close_button = True
+        task.run_courtyard_affairs()
+        self.assertLess(task.actions.index(('click', 'sign_result_close')),
+                        task.actions.index(('click', 'claim_success')))
+        self.assertNotIn(('click', 'sign_result'), task.actions)
+
+    def test_close_button_alone_does_not_identify_sign_result(self):
+        task = CourtyardTask()
+        task.state, task.sign_has_close_button = 'result', True
+        self.assertFalse(task._handle_daily_sign_popup())
+        self.assertEqual(task.actions, [])
+
     def test_automatic_sign_drum_is_also_handled_before_courtyard_exit(self):
         task = CourtyardTask()
         task.auto_sign = task.auto_sign_needs_draw = True
@@ -312,7 +335,8 @@ class CourtyardSoulChoiceTest(unittest.TestCase):
         rules = json.loads((folder / 'image_courtyard_affairs.json').read_text())
         for rule in rules:
             if not (rule['itemName'].startswith('courtyard_soul_') or rule['itemName'] in
-                    ('daily_sign_draw', 'daily_sign_result', 'courtyard_claim_success')):
+                    ('daily_sign_draw', 'daily_sign_result', 'daily_sign_result_close',
+                     'courtyard_claim_success')):
                 continue
             with self.subTest(rule=rule['itemName']):
                 raw = (folder / rule['imageName']).read_bytes()
