@@ -33,6 +33,7 @@ def load_methods():
 class DialogueTask(RewardTask):
     I_REWARDS_IBUKI_DIALOGUE = 'IBUKI_DIALOGUE'
     I_REWARDS_HIROMASA_DIALOGUE = 'HIROMASA_DIALOGUE'
+    I_REWARDS_YAO_BIKUNI_DIALOGUE = 'YAO_BIKUNI_DIALOGUE'
     C_REWARDS_DIALOGUE_CONTINUE = 'DIALOGUE_CONTINUE'
 
     def __init__(self, pages=3, complete=False):
@@ -94,7 +95,8 @@ class HiromasaTask(DialogueTask):
         super().__init__(pages=len(self.speakers), complete=complete)
 
     def appear_then_click(self, target, interval, action=None):
-        if target in (self.I_REWARDS_IBUKI_DIALOGUE, self.I_REWARDS_HIROMASA_DIALOGUE):
+        if target in (self.I_REWARDS_IBUKI_DIALOGUE, self.I_REWARDS_HIROMASA_DIALOGUE,
+                      self.I_REWARDS_YAO_BIKUNI_DIALOGUE):
             if not self.pages or not self.speakers or target != self.speakers[0]:
                 return False
             self.device.click(target)
@@ -214,6 +216,18 @@ class DelegationDialogueTest(unittest.TestCase):
         self.assertEqual(task.pages, 0)
         self.assertEqual(task.actions[3], ('arrived', 'delegation'))
         self.assertTrue(all(action[1] == 'DIALOGUE_CONTINUE' for action in task.actions[:3]))
+
+    def test_yao_bikuni_dialogue_is_advanced_before_navigation(self):
+        task = HiromasaTask(['YAO_BIKUNI_DIALOGUE', 'IBUKI_DIALOGUE'])
+        with self.assertRaises(TaskEnd):
+            task.run()
+        self.assertEqual(task.actions[0], ('YAO_BIKUNI_DIALOGUE', 'DIALOGUE_CONTINUE', 1))
+        self.assertEqual(task.actions[2], ('arrived', 'delegation'))
+
+    def test_reward_button_takes_priority_over_yao_bikuni_dialogue(self):
+        task = HiromasaTask(['YAO_BIKUNI_DIALOGUE'], complete=True)
+        self.assertTrue(task._recover_reward_screen())
+        self.assertEqual(task.actions[0][0], 'REWARDS_DONE')
 
     def test_hiromasa_marker_is_only_the_nameplate_and_search_covers_it(self):
         folder = ROOT / 'tasks/Delegation/rewards'

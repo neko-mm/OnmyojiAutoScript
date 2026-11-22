@@ -107,7 +107,8 @@ class ScriptTask(GameUi, DelegationAssets):
 
     def _advance_reward_dialogue(self):
         for marker, speaker in ((self.I_REWARDS_IBUKI_DIALOGUE, '伊吹'),
-                                (self.I_REWARDS_HIROMASA_DIALOGUE, '源博雅')):
+                                (self.I_REWARDS_HIROMASA_DIALOGUE, '源博雅'),
+                                (self.I_REWARDS_YAO_BIKUNI_DIALOGUE, '八百比丘尼')):
             if self.appear_then_click(marker, action=self.C_REWARDS_DIALOGUE_CONTINUE, interval=1):
                 logger.info(f'继续式神委派的{speaker}对话')
                 return marker

@@ -52,6 +52,8 @@ class DelegationAssets:
 
 
 	# Image Rule Assets
+	# 委派对话的八百比丘尼名字牌
+	I_REWARDS_YAO_BIKUNI_DIALOGUE = RuleImage(roi_front=(832,533,140,34), roi_back=(811,519,184,63), threshold=0.85, method="Template matching", file="./tasks/Delegation/rewards/rewards_yao_bikuni_dialogue.png")
 	# 委派对话的源博雅名字牌
 	I_REWARDS_HIROMASA_DIALOGUE = RuleImage(roi_front=(830,530,105,38), roi_back=(800,520,190,65), threshold=0.85, method="Template matching", file="./tasks/Delegation/rewards/rewards_hiromasa_dialogue.png")
 	# 展开收起的委派列表
@@ -82,5 +84,3 @@ class DelegationAssets:
 	# Click Rule Assets
 	# 继续委派对话
 	C_REWARDS_DIALOGUE_CONTINUE = RuleClick(roi_front=(420,615,400,60), roi_back=(420,615,400,60), name="rewards_dialogue_continue")
-
-

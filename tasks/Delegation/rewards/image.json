@@ -1,5 +1,14 @@
 [
   {
+    "itemName": "rewards_yao_bikuni_dialogue",
+    "imageName": "rewards_yao_bikuni_dialogue.png",
+    "roiFront": "832,533,140,34",
+    "roiBack": "811,519,184,63",
+    "method": "Template matching",
+    "threshold": 0.85,
+    "description": "委派对话的八百比丘尼名字牌"
+  },
+  {
     "itemName": "rewards_hiromasa_dialogue",
     "imageName": "rewards_hiromasa_dialogue.png",
     "roiFront": "830,530,105,38",
