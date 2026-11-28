@@ -4,6 +4,7 @@
 import random
 from time import sleep
 from datetime import time, datetime, timedelta
+import numpy as np
 from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
 
 from tasks.Component.GeneralBattle.general_battle import BattleAction, GeneralBattle, ExitMatcher, BattleContext
@@ -28,12 +29,15 @@ _PRESET_GROUP_CLICK_X = 466
 _PRESET_GROUP_SAMPLE_X = 420
 _PRESET_GROUP_START_Y = 184
 _PRESET_GROUP_STEP_Y = 51
-_PRESET_GROUP_UNSELECTED_COLOR = (225.5, 209.2, 189.0)
+_PRESET_GROUP_SELECTED_COLOR = (249.0, 215.0, 156.0)
+_PRESET_GROUP_SELECTED_THRESHOLD = 28
 
-_PRESET_TEAM_CLICK_X = 730
-_PRESET_TEAM_START_Y = 204
+_PRESET_TEAM_CLICK_X = 680
+_PRESET_TEAM_TOP_Y = 158
+_PRESET_TEAM_TITLE_OFFSET_Y = 16
 _PRESET_TEAM_STEP_Y = 96
 _PRESET_TEAM_VISIBLE_SLOTS = 3
+_PRESET_TEAM_PURPLE_THRESHOLD = 80
 _PRESET_TEAM_SWIPE_START = (730, 420)
 _PRESET_TEAM_SWIPE_END = (730, 324)
 
@@ -131,6 +135,20 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             return True
         return False
 
+    @staticmethod
+    def _count_preset_slot_purple_pixels(image, slot_index: int) -> int:
+        """统计指定队伍卡片左右边框的紫色高亮像素数，避开上下相邻卡片交界。"""
+        y_top = _PRESET_TEAM_TOP_Y + slot_index * _PRESET_TEAM_STEP_Y
+        y1, y2 = y_top + 15, y_top + 75
+        total = 0
+        for x1, x2 in ((534, 546), (916, 928)):
+            patch = image[y1:y2, x1:x2]
+            r = patch[:, :, 0].astype(int)
+            g = patch[:, :, 1].astype(int)
+            b = patch[:, :, 2].astype(int)
+            total += int(((b > 165) & (r > 100) & ((b - g) > 65)).sum())
+        return total
+
     def switch_orochi_preset_before_battle(self) -> bool:
         """在八岐大蛇选层页通过新版「队伍预设」弹窗直接切换出战队伍。
 
@@ -139,10 +157,12 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         """
         battle_cfg = self.config.orochi.general_battle_config
         if not battle_cfg.preset_enable:
+            logger.info('八岐大蛇未开启通用战斗预设队伍（preset_enable=False），跳过战前切队')
             return False
 
         preset_group = max(1, min(7, int(battle_cfg.preset_group or 1)))
         preset_team = max(1, int(battle_cfg.preset_team or 1))
+        logger.info(f'八岐大蛇准备战前切换预设队伍：预设组 {preset_group}，队伍 {preset_team}')
 
         # 1. 检测新版选层页「队伍预设」入口并打开弹窗
         open_timer = Timer(4).start()
@@ -166,35 +186,58 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             logger.warning('打开八岐大蛇队伍预设弹窗超时，回退至战斗准备页切队逻辑')
             return False
 
-        # 2. 选中左侧预设分组（1~7）
+        # 2. 正向校验并选中左侧预设分组（1~7）：确认采样区变为暖金色选中态
         group_y = _PRESET_GROUP_START_Y + (preset_group - 1) * _PRESET_GROUP_STEP_Y
         group_sample_area = (_PRESET_GROUP_SAMPLE_X, group_y - 4, _PRESET_GROUP_SAMPLE_X + 10, group_y + 5)
         group_timer = Timer(4).start()
+        group_selected = False
+        last_group_color = None
         while True:
             if group_timer.reached():
-                logger.warning(f'选择预设分组 {preset_group} 超时，继续尝试选择队伍')
+                logger.warning(f'选择预设分组 {preset_group} 超时（最后采样 RGB={last_group_color}），继续尝试选择队伍')
                 break
             self.screenshot()
-            sample_color = get_color(self.device.image, group_sample_area)
-            if color_similar(sample_color, _PRESET_GROUP_UNSELECTED_COLOR):
-                self.device.click(x=_PRESET_GROUP_CLICK_X, y=group_y, control_name=f'OROCHI_PRESET_GROUP_{preset_group}')
-                sleep(0.3)
-                continue
-            break
+            last_group_color = get_color(self.device.image, group_sample_area)
+            if color_similar(last_group_color, _PRESET_GROUP_SELECTED_COLOR, threshold=_PRESET_GROUP_SELECTED_THRESHOLD):
+                group_selected = True
+                logger.info(f'已确认选中预设分组 {preset_group}（RGB={[round(c, 1) for c in last_group_color]}）')
+                break
+            self.device.click(x=_PRESET_GROUP_CLICK_X, y=group_y, control_name=f'OROCHI_PRESET_GROUP_{preset_group}')
+            sleep(0.35)
 
-        # 3. 定位并选中右侧预设队伍（1~3 直接点，超过 3 队向上滑动后点第 3 槽位）
+        if group_selected:
+            sleep(0.25)
+
+        # 3. 定位并选中右侧预设队伍（1~3 直接点标题栏，超过 3 队向上滑动后点第 3 槽位）
         if preset_team <= _PRESET_TEAM_VISIBLE_SLOTS:
             slot_index = preset_team - 1
         else:
             swipe_steps = preset_team - _PRESET_TEAM_VISIBLE_SLOTS
+            logger.info(f'目标队伍 {preset_team} 超过前 {_PRESET_TEAM_VISIBLE_SLOTS} 队，右侧列表上滑 {swipe_steps} 步')
             for _ in range(swipe_steps):
                 self.device.swipe(p1=_PRESET_TEAM_SWIPE_START, p2=_PRESET_TEAM_SWIPE_END)
                 sleep(0.35)
             slot_index = _PRESET_TEAM_VISIBLE_SLOTS - 1
 
-        team_y = _PRESET_TEAM_START_Y + slot_index * _PRESET_TEAM_STEP_Y
-        self.device.click(x=_PRESET_TEAM_CLICK_X, y=team_y, control_name=f'OROCHI_PRESET_TEAM_{preset_team}')
-        sleep(0.3)
+        team_click_y = _PRESET_TEAM_TOP_Y + slot_index * _PRESET_TEAM_STEP_Y + _PRESET_TEAM_TITLE_OFFSET_Y
+        team_timer = Timer(4).start()
+        team_selected = False
+        last_purple_px = 0
+        while True:
+            if team_timer.reached():
+                logger.warning(f'确认选中队伍 {preset_team}（槽位 {slot_index + 1}）超时，紫色边框像素={last_purple_px}')
+                break
+            self.screenshot()
+            last_purple_px = self._count_preset_slot_purple_pixels(self.device.image, slot_index)
+            if last_purple_px >= _PRESET_TEAM_PURPLE_THRESHOLD:
+                team_selected = True
+                logger.info(f'已确认选中队伍 {preset_team}（槽位 {slot_index + 1}，紫色边框像素={last_purple_px}）')
+                break
+            self.device.click(x=_PRESET_TEAM_CLICK_X, y=team_click_y, control_name=f'OROCHI_PRESET_TEAM_{preset_team}')
+            sleep(0.35)
+
+        if not team_selected:
+            logger.warning(f'未能确认目标队伍 {preset_team} 处于选中状态，仍尝试点击出战')
 
         # 4. 点击「出战」并等待弹窗自动关闭回到选层页
         deploy_timer = Timer(5).start()
