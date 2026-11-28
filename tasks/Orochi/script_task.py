@@ -31,6 +31,8 @@ _PRESET_GROUP_START_Y = 184
 _PRESET_GROUP_STEP_Y = 51
 _PRESET_GROUP_SELECTED_COLOR = (249.0, 215.0, 156.0)
 _PRESET_GROUP_SELECTED_THRESHOLD = 28
+_PRESET_GROUP_SCROLL_TOP_START = (466, 200)
+_PRESET_GROUP_SCROLL_TOP_END = (466, 480)
 
 _PRESET_TEAM_CLICK_X = 680
 _PRESET_TEAM_TOP_Y = 158
@@ -38,6 +40,8 @@ _PRESET_TEAM_TITLE_OFFSET_Y = 16
 _PRESET_TEAM_STEP_Y = 96
 _PRESET_TEAM_VISIBLE_SLOTS = 3
 _PRESET_TEAM_PURPLE_THRESHOLD = 80
+_PRESET_TEAM_SCROLL_TOP_START = (730, 200)
+_PRESET_TEAM_SCROLL_TOP_END = (730, 440)
 _PRESET_TEAM_SWIPE_START = (730, 420)
 _PRESET_TEAM_SWIPE_END = (730, 324)
 _PRESET_ENTRY_BRIGHTNESS_AREA = (752, 566, 800, 614)
@@ -165,6 +169,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         preset_group = max(1, min(7, int(battle_cfg.preset_group or 1)))
         preset_team = max(1, int(battle_cfg.preset_team or 1))
         logger.info(f'八岐大蛇准备战前切换预设队伍：预设组 {preset_group}，队伍 {preset_team}')
+        # 选层后稍作缓冲，等待选层页稳定后再点击队伍预设
+        sleep(0.5)
 
         # 1. 检测新版选层页「队伍预设」入口并打开弹窗
         open_timer = Timer(4).start()
@@ -179,6 +185,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 break
             if self.appear_then_click(self.I_TEAM_PRESET, interval=1):
                 seen_entry = True
+                sleep(0.4)
                 continue
             if not seen_entry and open_timer.current() >= 1.5:
                 logger.info('选层页未识别到新版队伍预设入口，回退至战斗准备页切队逻辑')
@@ -188,7 +195,12 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             logger.warning('打开八岐大蛇队伍预设弹窗超时，回退至战斗准备页切队逻辑')
             return False
 
-        # 2. 正向校验并选中左侧预设分组（1~7）：确认采样区变为暖金色选中态
+        # 2. 先将左侧分组列表向下滑回最顶部，确保第 1 格为「常用」、第 2 格为「挖土」等原始顺序
+        for _ in range(2):
+            self.device.swipe(p1=_PRESET_GROUP_SCROLL_TOP_START, p2=_PRESET_GROUP_SCROLL_TOP_END)
+            sleep(0.4)
+
+        # 3. 正向校验并选中左侧预设分组（1~7）：确认采样区变为暖金色选中态
         group_y = _PRESET_GROUP_START_Y + (preset_group - 1) * _PRESET_GROUP_STEP_Y
         group_sample_area = (_PRESET_GROUP_SAMPLE_X, group_y - 4, _PRESET_GROUP_SAMPLE_X + 10, group_y + 5)
         group_timer = Timer(4).start()
@@ -205,12 +217,16 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 logger.info(f'已确认选中预设分组 {preset_group}（RGB={[round(c, 1) for c in last_group_color]}）')
                 break
             self.device.click(x=_PRESET_GROUP_CLICK_X, y=group_y, control_name=f'OROCHI_PRESET_GROUP_{preset_group}')
-            sleep(0.35)
+            sleep(0.45)
 
         if group_selected:
-            sleep(0.25)
+            sleep(0.35)
 
-        # 3. 定位并选中右侧预设队伍（1~3 直接点标题栏，超过 3 队向上滑动后点第 3 槽位）
+        # 4. 将右侧队伍列表先拉回最顶部，避免上次停留在同一分组且已下滑导致槽位错位
+        self.device.swipe(p1=_PRESET_TEAM_SCROLL_TOP_START, p2=_PRESET_TEAM_SCROLL_TOP_END)
+        sleep(0.4)
+
+        # 5. 定位并选中右侧预设队伍（1~3 直接点标题栏，超过 3 队向上滑动后点第 3 槽位）
         if preset_team <= _PRESET_TEAM_VISIBLE_SLOTS:
             slot_index = preset_team - 1
         else:
@@ -218,7 +234,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             logger.info(f'目标队伍 {preset_team} 超过前 {_PRESET_TEAM_VISIBLE_SLOTS} 队，右侧列表上滑 {swipe_steps} 步')
             for _ in range(swipe_steps):
                 self.device.swipe(p1=_PRESET_TEAM_SWIPE_START, p2=_PRESET_TEAM_SWIPE_END)
-                sleep(0.35)
+                sleep(0.4)
             slot_index = _PRESET_TEAM_VISIBLE_SLOTS - 1
 
         team_click_y = _PRESET_TEAM_TOP_Y + slot_index * _PRESET_TEAM_STEP_Y + _PRESET_TEAM_TITLE_OFFSET_Y
@@ -236,12 +252,14 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 logger.info(f'已确认选中队伍 {preset_team}（槽位 {slot_index + 1}，紫色边框像素={last_purple_px}）')
                 break
             self.device.click(x=_PRESET_TEAM_CLICK_X, y=team_click_y, control_name=f'OROCHI_PRESET_TEAM_{preset_team}')
-            sleep(0.35)
+            sleep(0.45)
 
         if not team_selected:
             logger.warning(f'未能确认目标队伍 {preset_team} 处于选中状态，仍尝试点击出战')
+        else:
+            sleep(0.3)
 
-        # 4. 点击「出战」；若弹出“御魂不一致，是否自动装配御魂并出战”确认框则点击「确定」，
+        # 6. 点击「出战」；若弹出“御魂不一致，是否自动装配御魂并出战”确认框则点击「确定」，
         #    直到两个弹窗都消失且选层页恢复正常亮度（避免遮罩未消时误判已返回）
         deploy_timer = Timer(6).start()
         deployed = False

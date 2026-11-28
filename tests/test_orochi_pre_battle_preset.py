@@ -211,7 +211,15 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
         self.assertFalse(task.popup_open)
         self.assertEqual(task.device.selected_group, 2)
         self.assertEqual(task.device.selected_slot, 2)
-        self.assertEqual(task.device.swipes, [])
+        # 左侧分组拉回顶部 2 次 + 右侧队伍拉回顶部 1 次
+        self.assertEqual(
+            task.device.swipes,
+            [
+                ((466, 200), (466, 480)),
+                ((466, 200), (466, 480)),
+                ((730, 200), (730, 440)),
+            ],
+        )
         self.assertEqual(
             [c[2] for c in task.device.clicks],
             ["OROCHI_PRESET_GROUP_2", "OROCHI_PRESET_TEAM_3"],
@@ -239,7 +247,9 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
         task = FakeOrochiTask(preset_enable=True, preset_group=1, preset_team=5, has_new_ui=True)
         res = task._switch_fn(task)
         self.assertTrue(res)
-        self.assertEqual(len(task.device.swipes), 2)
+        # 左侧拉顶 2 次 + 右侧拉顶 1 次 + 右侧上滑 2 次
+        self.assertEqual(len(task.device.swipes), 5)
+        self.assertEqual(task.device.swipes[-2:], [((730, 420), (730, 324)), ((730, 420), (730, 324))])
         self.assertEqual(task.device.clicks[-1], (680, 366, "OROCHI_PRESET_TEAM_5"))
         self.assertEqual(task.marked, [("orochi_神罚", "preset")])
 
