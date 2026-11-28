@@ -164,6 +164,14 @@ class GeneralBattle(GeneralBuff, GeneralBattleAssets):
         # 标记当前任务 session 内的战斗页面覆写是否已注册，避免重复污染 session 副本。
         self._custom_pages_registered: bool = False
 
+    def mark_battle_behavior_done(self, battle_key: str, behavior_name: str) -> None:
+        """预先标记指定 `battle_key` 的共享一次性行为已完成。
+
+        例如在进入战斗前已通过选层页「队伍预设」完成切队，可提前标记 `"preset"`，
+        避免进入战斗准备页后重复切换。
+        """
+        self._battle_shared_state.setdefault(battle_key, BattleBehaviorState()).done.add(behavior_name)
+
     def _register_custom_pages(self) -> None:
         """供子任务在 session 内覆写战斗页面识别规则。
 

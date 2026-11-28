@@ -16,9 +16,26 @@ from tasks.GameUi.page import any_of, page_main, page_reward, page_shikigami_rec
 from tasks.Orochi.assets import OrochiAssets
 from tasks.Orochi.config import Orochi, UserStatus, Layer
 from tasks.TrueOrochi.assets import TrueOrochiAssets
+from module.base.timer import Timer
+from module.base.utils import color_similar, get_color
 from module.logger import logger
 from module.exception import TaskEnd
 from tasks.Orochi.page import page_orochi
+
+
+# 新版御魂选层页「队伍预设」弹窗布局（1280x720）
+_PRESET_GROUP_CLICK_X = 466
+_PRESET_GROUP_SAMPLE_X = 420
+_PRESET_GROUP_START_Y = 184
+_PRESET_GROUP_STEP_Y = 51
+_PRESET_GROUP_UNSELECTED_COLOR = (225.5, 209.2, 189.0)
+
+_PRESET_TEAM_CLICK_X = 730
+_PRESET_TEAM_START_Y = 204
+_PRESET_TEAM_STEP_Y = 96
+_PRESET_TEAM_VISIBLE_SLOTS = 3
+_PRESET_TEAM_SWIPE_START = (730, 420)
+_PRESET_TEAM_SWIPE_END = (730, 324)
 
 
 class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi, SwitchSoul, OrochiAssets, TrueOrochiAssets):
@@ -114,11 +131,98 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             return True
         return False
 
+    def switch_orochi_preset_before_battle(self) -> bool:
+        """在八岐大蛇选层页通过新版「队伍预设」弹窗直接切换出战队伍。
+
+        支持在开启「锁定阵容」及队长/单人/野队模式下战前换队；若当前客户端界面
+        未识别到新版「队伍预设」入口，则返回 False 自动回退原有战中准备页切队逻辑。
+        """
+        battle_cfg = self.config.orochi.general_battle_config
+        if not battle_cfg.preset_enable:
+            return False
+
+        preset_group = max(1, min(7, int(battle_cfg.preset_group or 1)))
+        preset_team = max(1, int(battle_cfg.preset_team or 1))
+
+        # 1. 检测新版选层页「队伍预设」入口并打开弹窗
+        open_timer = Timer(4).start()
+        opened = False
+        seen_entry = False
+        while True:
+            if open_timer.reached():
+                break
+            self.screenshot()
+            if self.appear(self.I_PRESET_DEPLOY):
+                opened = True
+                break
+            if self.appear_then_click(self.I_TEAM_PRESET, interval=1):
+                seen_entry = True
+                continue
+            if not seen_entry and open_timer.current() >= 1.5:
+                logger.info('选层页未识别到新版队伍预设入口，回退至战斗准备页切队逻辑')
+                return False
+
+        if not opened:
+            logger.warning('打开八岐大蛇队伍预设弹窗超时，回退至战斗准备页切队逻辑')
+            return False
+
+        # 2. 选中左侧预设分组（1~7）
+        group_y = _PRESET_GROUP_START_Y + (preset_group - 1) * _PRESET_GROUP_STEP_Y
+        group_sample_area = (_PRESET_GROUP_SAMPLE_X, group_y - 4, _PRESET_GROUP_SAMPLE_X + 10, group_y + 5)
+        group_timer = Timer(4).start()
+        while True:
+            if group_timer.reached():
+                logger.warning(f'选择预设分组 {preset_group} 超时，继续尝试选择队伍')
+                break
+            self.screenshot()
+            sample_color = get_color(self.device.image, group_sample_area)
+            if color_similar(sample_color, _PRESET_GROUP_UNSELECTED_COLOR):
+                self.device.click(x=_PRESET_GROUP_CLICK_X, y=group_y, control_name=f'OROCHI_PRESET_GROUP_{preset_group}')
+                sleep(0.3)
+                continue
+            break
+
+        # 3. 定位并选中右侧预设队伍（1~3 直接点，超过 3 队向上滑动后点第 3 槽位）
+        if preset_team <= _PRESET_TEAM_VISIBLE_SLOTS:
+            slot_index = preset_team - 1
+        else:
+            swipe_steps = preset_team - _PRESET_TEAM_VISIBLE_SLOTS
+            for _ in range(swipe_steps):
+                self.device.swipe(p1=_PRESET_TEAM_SWIPE_START, p2=_PRESET_TEAM_SWIPE_END)
+                sleep(0.35)
+            slot_index = _PRESET_TEAM_VISIBLE_SLOTS - 1
+
+        team_y = _PRESET_TEAM_START_Y + slot_index * _PRESET_TEAM_STEP_Y
+        self.device.click(x=_PRESET_TEAM_CLICK_X, y=team_y, control_name=f'OROCHI_PRESET_TEAM_{preset_team}')
+        sleep(0.3)
+
+        # 4. 点击「出战」并等待弹窗自动关闭回到选层页
+        deploy_timer = Timer(5).start()
+        deployed = False
+        while True:
+            if deploy_timer.reached():
+                break
+            self.screenshot()
+            if not self.appear(self.I_PRESET_DEPLOY):
+                deployed = True
+                break
+            if self.appear_then_click(self.I_PRESET_DEPLOY, interval=1):
+                continue
+
+        if not deployed:
+            logger.warning('点击队伍预设「出战」后弹窗未关闭，回退至战斗准备页切队逻辑')
+            return False
+
+        self.mark_battle_behavior_done(self._orochi_battle_key(), "preset")
+        logger.info(f'八岐大蛇战前切换预设队伍成功：分组 {preset_group}，队伍 {preset_team}')
+        return True
+
     def run_leader(self):
         logger.info('Start run leader')
         self.goto_page(page_orochi)
         layer = self.config.orochi.orochi_config.layer
         self.check_layer(layer)
+        self.switch_orochi_preset_before_battle()
         # https://github.com/runhey/OnmyojiAutoScript/issues/592
         self.config.orochi.general_battle_config.lock_team_enable = True
         self.check_lock(self.config.orochi.general_battle_config.lock_team_enable, self.I_OROCHI_LOCK, self.I_OROCHI_UNLOCK)
@@ -245,6 +349,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         self.goto_page(page_orochi)
         layer = self.config.orochi.orochi_config.layer
         self.check_layer(layer)
+        self.switch_orochi_preset_before_battle()
         self.check_lock(self.config.orochi.general_battle_config.lock_team_enable, self.I_OROCHI_LOCK, self.I_OROCHI_UNLOCK)
 
         def is_in_orochi(screenshot=False) -> bool:
@@ -285,6 +390,7 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             self.goto_page(page_orochi)
             layer = self.config.orochi.orochi_config.layer
             self.check_layer(layer)
+            self.switch_orochi_preset_before_battle()
             self.check_lock(self.config.orochi.general_battle_config.lock_team_enable, self.I_OROCHI_LOCK, self.I_OROCHI_UNLOCK)
             # 创建队伍
             logger.info('Create team')

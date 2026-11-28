@@ -33,6 +33,10 @@ class OrochiAssets:
 	I_OROCHI_CHECK_12 = RuleImage(roi_front=(929,116,100,46), roi_back=(896,100,269,84), threshold=0.8, method="Template matching", file="./tasks/Orochi/o/o_orochi_check_12.png")
 	# 虚无大蛇标志 
 	I_OROCHI_CHECK_13 = RuleImage(roi_front=(929,121,211,41), roi_back=(896,100,269,84), threshold=0.8, method="Template matching", file="./tasks/Orochi/o/o_orochi_check_13.png")
+	# 选层页队伍预设按钮 
+	I_TEAM_PRESET = RuleImage(roi_front=(752,566,48,48), roi_back=(680,540,200,120), threshold=0.8, method="Template matching", file="./tasks/Orochi/o/o_team_preset.png")
+	# 队伍预设弹窗出战按钮 
+	I_PRESET_DEPLOY = RuleImage(roi_front=(676,486,100,34), roi_back=(640,465,170,75), threshold=0.8, method="Template matching", file="./tasks/Orochi/o/o_preset_deploy.png")
 
 
 	# List Rule Assets

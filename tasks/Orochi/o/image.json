@@ -97,5 +97,23 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "虚无大蛇标志"
+  },
+  {
+    "itemName": "team_preset",
+    "imageName": "o_team_preset.png",
+    "roiFront": "752,566,48,48",
+    "roiBack": "680,540,200,120",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "选层页队伍预设按钮"
+  },
+  {
+    "itemName": "preset_deploy",
+    "imageName": "o_preset_deploy.png",
+    "roiFront": "676,486,100,34",
+    "roiBack": "640,465,170,75",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "队伍预设弹窗出战按钮"
   }
 ]
