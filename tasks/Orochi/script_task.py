@@ -48,6 +48,8 @@ _PRESET_TEAM_SWIPE_UP_DY_RANGE = (92, 102)
 _PRESET_TEAM_SWIPE_UP_DX_JITTER = 18
 _PRESET_ENTRY_BRIGHTNESS_AREA = (752, 566, 800, 614)
 _PRESET_ENTRY_NORMAL_BRIGHTNESS = 75.0
+_PRESET_CLOSE_OUTSIDE_BOX = (260, 180, 355, 420)
+_PRESET_STABLE_EXIT_CHECKS = 2
 
 
 class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi, SwitchSoul, OrochiAssets, TrueOrochiAssets):
@@ -161,6 +163,27 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             b = patch[:, :, 2].astype(int)
             total += int(((b > 165) & (r > 100) & ((b - g) > 65)).sum())
         return total
+
+    def _is_preset_overlay_clear(self) -> bool:
+        """判断队伍预设及御魂确认弹窗是否已关闭且选层页恢复正常亮度。"""
+        if self.appear(self.I_PRESET_DEPLOY) or self.appear(self.I_PRESET_CONFIRM):
+            return False
+        x1, y1, x2, y2 = _PRESET_ENTRY_BRIGHTNESS_AREA
+        return float(np.mean(self.device.image[y1:y2, x1:x2])) >= _PRESET_ENTRY_NORMAL_BRIGHTNESS
+
+    def _dismiss_preset_popup_if_open(self) -> None:
+        """超时回退前清理残留的队伍预设弹窗，避免后续隔着弹窗误点挑战。"""
+        close_timer = Timer(3).start()
+        while not close_timer.reached():
+            self.screenshot()
+            if self._is_preset_overlay_clear():
+                return
+            if self.appear_then_click(self.I_PRESET_CONFIRM, interval=1):
+                sleep(0.35)
+                continue
+            cx, cy = self._random_point_in_box(_PRESET_CLOSE_OUTSIDE_BOX)
+            self.device.click(x=cx, y=cy, control_name='OROCHI_PRESET_DISMISS')
+            sleep(0.35)
 
     def switch_orochi_preset_before_battle(self) -> bool:
         """在八岐大蛇选层页通过新版「队伍预设」弹窗直接切换出战队伍。
@@ -293,10 +316,11 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             sleep(0.3)
 
         # 6. 点击「出战」；若弹出“御魂不一致，是否自动装配御魂并出战”确认框则点击「确定」，
-        #    直到两个弹窗都消失且选层页恢复正常亮度（避免遮罩未消时误判已返回）
-        deploy_timer = Timer(6).start()
+        #    并连续 2 次稳定截图确认两个弹窗都消失且选层页恢复正常亮度（防卡顿延迟弹窗抢跑）
+        deploy_timer = Timer(7).start()
         deployed = False
         clicked_deploy = False
+        stable_clear_count = 0
         while True:
             if deploy_timer.reached():
                 break
@@ -304,22 +328,27 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if self.appear_then_click(self.I_PRESET_CONFIRM, interval=1):
                 logger.info('检测到御魂不一致确认弹窗，已点击「确定」自动装配御魂并出战')
                 clicked_deploy = True
+                stable_clear_count = 0
                 sleep(0.4)
                 continue
             if self.appear_then_click(self.I_PRESET_DEPLOY, interval=1):
                 clicked_deploy = True
+                stable_clear_count = 0
                 sleep(0.5)
                 continue
-            if clicked_deploy and not self.appear(self.I_PRESET_DEPLOY) and not self.appear(self.I_PRESET_CONFIRM):
-                x1, y1, x2, y2 = _PRESET_ENTRY_BRIGHTNESS_AREA
-                entry_brightness = float(np.mean(self.device.image[y1:y2, x1:x2]))
-                if entry_brightness >= _PRESET_ENTRY_NORMAL_BRIGHTNESS:
+            if clicked_deploy and self._is_preset_overlay_clear():
+                stable_clear_count += 1
+                if stable_clear_count >= _PRESET_STABLE_EXIT_CHECKS:
                     deployed = True
                     break
+                sleep(0.3)
+            else:
+                stable_clear_count = 0
                 sleep(0.2)
 
         if not deployed:
-            logger.warning('点击队伍预设「出战」后弹窗未完全关闭，回退至战斗准备页切队逻辑')
+            logger.warning('点击队伍预设「出战」后弹窗未完全关闭，尝试关闭残留弹窗并回退至战斗准备页切队逻辑')
+            self._dismiss_preset_popup_if_open()
             return False
 
         self.mark_battle_behavior_done(self._orochi_battle_key(), "preset")

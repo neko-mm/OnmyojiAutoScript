@@ -66,6 +66,8 @@ def load_switch_methods():
     return (
         scope["_random_point_in_box"],
         scope["_count_preset_slot_purple_pixels"],
+        scope["_is_preset_overlay_clear"],
+        scope["_dismiss_preset_popup_if_open"],
         scope["switch_orochi_preset_before_battle"],
     )
 
@@ -107,6 +109,9 @@ class FakeDevice:
             slot = (y - 158) // 96
             self.selected_slot = slot
             self._render()
+        elif control_name == "OROCHI_PRESET_DISMISS":
+            self.dimmed = False
+            self._render()
 
     def swipe(self, p1, p2):
         self.swipes.append((p1, p2))
@@ -125,6 +130,8 @@ class FakeOrochiTask:
         has_new_ui=True,
         unselected_rgb=(218, 200, 180),
         require_soul_confirm=False,
+        delayed_confirm_frames=0,
+        stuck_deploy=False,
     ):
         self.config = SimpleNamespace(
             orochi=SimpleNamespace(
@@ -139,12 +146,21 @@ class FakeOrochiTask:
         )
         self.has_new_ui = has_new_ui
         self.require_soul_confirm = require_soul_confirm
+        self.delayed_confirm_frames = delayed_confirm_frames
+        self.stuck_deploy = stuck_deploy
         self.popup_open = False
         self.confirm_open = False
         self.confirm_clicked = 0
+        self.pending_delayed_confirm = False
         self.marked = []
         self.device = FakeDevice(selected_group=1, selected_slot=0, unselected_rgb=unselected_rgb)
-        self._rand_fn, self._count_fn, self._switch_fn = load_switch_methods()
+        (
+            self._rand_fn,
+            self._count_fn,
+            self._clear_fn,
+            self._dismiss_fn,
+            self._switch_fn,
+        ) = load_switch_methods()
 
     def _random_point_in_box(self, box):
         return self._rand_fn(box)
@@ -152,11 +168,26 @@ class FakeOrochiTask:
     def _count_preset_slot_purple_pixels(self, image, slot_index):
         return self._count_fn(image, slot_index)
 
+    def _is_preset_overlay_clear(self):
+        return self._clear_fn(self)
+
+    def _dismiss_preset_popup_if_open(self):
+        return self._dismiss_fn(self)
+
     def _orochi_battle_key(self):
         return f"orochi_{self.config.orochi.orochi_config.layer}"
 
     def screenshot(self):
-        pass
+        if self.pending_delayed_confirm:
+            if self.delayed_confirm_frames > 0:
+                self.delayed_confirm_frames -= 1
+            else:
+                self.pending_delayed_confirm = False
+                self.confirm_open = True
+                self.device.set_dimmed(True)
+        if any(c[2] == "OROCHI_PRESET_DISMISS" for c in self.device.clicks):
+            self.popup_open = False
+            self.confirm_open = False
 
     def appear(self, rule):
         if rule == self.I_TEAM_PRESET:
@@ -174,9 +205,15 @@ class FakeOrochiTask:
             self.popup_open = True
             return True
         if rule == self.I_PRESET_DEPLOY:
+            if self.stuck_deploy:
+                return True
             if self.require_soul_confirm:
-                self.confirm_open = True
-                self.device.set_dimmed(True)
+                if self.delayed_confirm_frames > 0:
+                    self.popup_open = False
+                    self.pending_delayed_confirm = True
+                else:
+                    self.confirm_open = True
+                    self.device.set_dimmed(True)
             else:
                 self.popup_open = False
             return True
@@ -264,6 +301,39 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
         self.assertFalse(task.popup_open)
         self.assertFalse(task.device.dimmed)
         self.assertEqual(task.marked, [("orochi_神罚", "preset")])
+
+    def test_handles_delayed_soul_mismatch_confirm_popup(self):
+        # 模拟游戏卡顿：点完出战后第 1 帧看似已关，第 2 帧才延迟弹出确认框
+        task = FakeOrochiTask(
+            preset_enable=True,
+            preset_group=2,
+            preset_team=3,
+            has_new_ui=True,
+            require_soul_confirm=True,
+            delayed_confirm_frames=1,
+        )
+        res = task._switch_fn(task)
+        self.assertTrue(res)
+        self.assertEqual(task.confirm_clicked, 1)
+        self.assertFalse(task.confirm_open)
+        self.assertFalse(task.popup_open)
+        self.assertEqual(task.marked, [("orochi_神罚", "preset")])
+
+    def test_timeout_dismisses_lingering_popup_before_fallback(self):
+        task = FakeOrochiTask(
+            preset_enable=True,
+            preset_group=2,
+            preset_team=3,
+            has_new_ui=True,
+            stuck_deploy=True,
+        )
+        res = task._switch_fn(task)
+        self.assertFalse(res)
+        self.assertEqual(task.marked, [])
+        self.assertFalse(task.popup_open)
+        dismiss_clicks = [c for c in task.device.clicks if c[2] == "OROCHI_PRESET_DISMISS"]
+        self.assertGreaterEqual(len(dismiss_clicks), 1)
+        assert_in_box(self, dismiss_clicks[0][:2], (260, 180, 355, 420))
 
     def test_switch_team_beyond_three_triggers_randomized_swipe(self):
         task = FakeOrochiTask(preset_enable=True, preset_group=1, preset_team=5, has_new_ui=True)
