@@ -40,6 +40,8 @@ _PRESET_TEAM_VISIBLE_SLOTS = 3
 _PRESET_TEAM_PURPLE_THRESHOLD = 80
 _PRESET_TEAM_SWIPE_START = (730, 420)
 _PRESET_TEAM_SWIPE_END = (730, 324)
+_PRESET_ENTRY_BRIGHTNESS_AREA = (752, 566, 800, 614)
+_PRESET_ENTRY_NORMAL_BRIGHTNESS = 75.0
 
 
 class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi, SwitchSoul, OrochiAssets, TrueOrochiAssets):
@@ -239,21 +241,34 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         if not team_selected:
             logger.warning(f'未能确认目标队伍 {preset_team} 处于选中状态，仍尝试点击出战')
 
-        # 4. 点击「出战」并等待弹窗自动关闭回到选层页
-        deploy_timer = Timer(5).start()
+        # 4. 点击「出战」；若弹出“御魂不一致，是否自动装配御魂并出战”确认框则点击「确定」，
+        #    直到两个弹窗都消失且选层页恢复正常亮度（避免遮罩未消时误判已返回）
+        deploy_timer = Timer(6).start()
         deployed = False
+        clicked_deploy = False
         while True:
             if deploy_timer.reached():
                 break
             self.screenshot()
-            if not self.appear(self.I_PRESET_DEPLOY):
-                deployed = True
-                break
-            if self.appear_then_click(self.I_PRESET_DEPLOY, interval=1):
+            if self.appear_then_click(self.I_PRESET_CONFIRM, interval=1):
+                logger.info('检测到御魂不一致确认弹窗，已点击「确定」自动装配御魂并出战')
+                clicked_deploy = True
+                sleep(0.4)
                 continue
+            if self.appear_then_click(self.I_PRESET_DEPLOY, interval=1):
+                clicked_deploy = True
+                sleep(0.5)
+                continue
+            if clicked_deploy and not self.appear(self.I_PRESET_DEPLOY) and not self.appear(self.I_PRESET_CONFIRM):
+                x1, y1, x2, y2 = _PRESET_ENTRY_BRIGHTNESS_AREA
+                entry_brightness = float(np.mean(self.device.image[y1:y2, x1:x2]))
+                if entry_brightness >= _PRESET_ENTRY_NORMAL_BRIGHTNESS:
+                    deployed = True
+                    break
+                sleep(0.2)
 
         if not deployed:
-            logger.warning('点击队伍预设「出战」后弹窗未关闭，回退至战斗准备页切队逻辑')
+            logger.warning('点击队伍预设「出战」后弹窗未完全关闭，回退至战斗准备页切队逻辑')
             return False
 
         self.mark_battle_behavior_done(self._orochi_battle_key(), "preset")

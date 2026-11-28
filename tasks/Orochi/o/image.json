@@ -115,5 +115,14 @@
     "method": "Template matching",
     "threshold": 0.8,
     "description": "队伍预设弹窗出战按钮"
+  },
+  {
+    "itemName": "preset_confirm",
+    "imageName": "o_preset_confirm.png",
+    "roiFront": "685,419,136,38",
+    "roiBack": "655,400,200,80",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "队伍预设御魂不一致确认按钮"
   }
 ]

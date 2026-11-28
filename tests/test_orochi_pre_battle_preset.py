@@ -71,11 +71,14 @@ class FakeDevice:
         self.selected_group = selected_group
         self.selected_slot = selected_slot
         self.unselected_rgb = unselected_rgb
+        self.dimmed = False
         self.image = np.zeros((720, 1280, 3), dtype=np.uint8)
         self._render()
 
     def _render(self):
         self.image[:, :] = (30, 30, 30)
+        # 正常亮度选层页入口区 (752, 566, 800, 614)
+        self.image[566:614, 752:800] = (43, 43, 43) if self.dimmed else (106, 106, 106)
         for g in range(1, 8):
             y = 184 + (g - 1) * 51
             rgb = (249, 215, 156) if g == self.selected_group else self.unselected_rgb
@@ -85,11 +88,15 @@ class FakeDevice:
             self.image[y_top + 15:y_top + 75, 535:543] = (140, 50, 220)
             self.image[y_top + 15:y_top + 75, 918:926] = (140, 50, 220)
 
+    def set_dimmed(self, dimmed: bool):
+        self.dimmed = dimmed
+        self._render()
+
     def click(self, x, y, control_name=""):
         self.clicks.append((x, y, control_name))
         if control_name.startswith("OROCHI_PRESET_GROUP_"):
             self.selected_group = int(control_name.rsplit("_", 1)[-1])
-            self.selected_slot = 0  # 切分组后重置当前选中槽位
+            self.selected_slot = 0
             self._render()
         elif control_name.startswith("OROCHI_PRESET_TEAM_"):
             slot = round((y - (158 + 16)) / 96)
@@ -103,8 +110,17 @@ class FakeDevice:
 class FakeOrochiTask:
     I_TEAM_PRESET = "I_TEAM_PRESET"
     I_PRESET_DEPLOY = "I_PRESET_DEPLOY"
+    I_PRESET_CONFIRM = "I_PRESET_CONFIRM"
 
-    def __init__(self, preset_enable=True, preset_group=1, preset_team=1, has_new_ui=True, unselected_rgb=(218, 200, 180)):
+    def __init__(
+        self,
+        preset_enable=True,
+        preset_group=1,
+        preset_team=1,
+        has_new_ui=True,
+        unselected_rgb=(218, 200, 180),
+        require_soul_confirm=False,
+    ):
         self.config = SimpleNamespace(
             orochi=SimpleNamespace(
                 orochi_config=SimpleNamespace(layer="神罚"),
@@ -117,7 +133,10 @@ class FakeOrochiTask:
             )
         )
         self.has_new_ui = has_new_ui
+        self.require_soul_confirm = require_soul_confirm
         self.popup_open = False
+        self.confirm_open = False
+        self.confirm_clicked = 0
         self.marked = []
         self.device = FakeDevice(selected_group=1, selected_slot=0, unselected_rgb=unselected_rgb)
         self._count_fn, self._switch_fn = load_switch_methods()
@@ -135,7 +154,9 @@ class FakeOrochiTask:
         if rule == self.I_TEAM_PRESET:
             return self.has_new_ui
         if rule == self.I_PRESET_DEPLOY:
-            return self.popup_open
+            return self.popup_open and not self.confirm_open
+        if rule == self.I_PRESET_CONFIRM:
+            return self.confirm_open
         return False
 
     def appear_then_click(self, rule, interval=1):
@@ -145,7 +166,17 @@ class FakeOrochiTask:
             self.popup_open = True
             return True
         if rule == self.I_PRESET_DEPLOY:
+            if self.require_soul_confirm:
+                self.confirm_open = True
+                self.device.set_dimmed(True)
+            else:
+                self.popup_open = False
+            return True
+        if rule == self.I_PRESET_CONFIRM:
+            self.confirm_clicked += 1
+            self.confirm_open = False
             self.popup_open = False
+            self.device.set_dimmed(False)
             return True
         return False
 
@@ -168,7 +199,6 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
         self.assertEqual(task.marked, [])
 
     def test_switch_group_2_team_3_even_with_color_shift(self):
-        # 模拟未选中色与标准图有明显色偏，仍必须点击分组 2 并校验队伍 3 紫色选中框
         task = FakeOrochiTask(
             preset_enable=True,
             preset_group=2,
@@ -186,8 +216,23 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
             [c[2] for c in task.device.clicks],
             ["OROCHI_PRESET_GROUP_2", "OROCHI_PRESET_TEAM_3"],
         )
-        # 验证点击落在第 3 张卡片标题栏 (680, 366)
         self.assertEqual(task.device.clicks[-1][:2], (680, 366))
+        self.assertEqual(task.marked, [("orochi_神罚", "preset")])
+
+    def test_handles_soul_mismatch_confirm_popup(self):
+        task = FakeOrochiTask(
+            preset_enable=True,
+            preset_group=2,
+            preset_team=3,
+            has_new_ui=True,
+            require_soul_confirm=True,
+        )
+        res = task._switch_fn(task)
+        self.assertTrue(res)
+        self.assertEqual(task.confirm_clicked, 1)
+        self.assertFalse(task.confirm_open)
+        self.assertFalse(task.popup_open)
+        self.assertFalse(task.device.dimmed)
         self.assertEqual(task.marked, [("orochi_神罚", "preset")])
 
     def test_switch_team_beyond_three_triggers_swipe(self):
@@ -207,14 +252,14 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
 
     def test_assets_and_image_json_consistent(self):
         items = {x["itemName"]: x for x in json.loads(IMAGE_JSON_PATH.read_text(encoding="utf-8"))}
-        self.assertIn("team_preset", items)
-        self.assertIn("preset_deploy", items)
-        for key in ("team_preset", "preset_deploy"):
+        for key in ("team_preset", "preset_deploy", "preset_confirm"):
+            self.assertIn(key, items)
             img_file = ROOT / "tasks/Orochi/o" / items[key]["imageName"]
             self.assertTrue(img_file.exists(), f"missing {img_file}")
         assets_src = ASSETS_PATH.read_text(encoding="utf-8")
         self.assertIn("I_TEAM_PRESET = RuleImage(", assets_src)
         self.assertIn("I_PRESET_DEPLOY = RuleImage(", assets_src)
+        self.assertIn("I_PRESET_CONFIRM = RuleImage(", assets_src)
 
 
 if __name__ == "__main__":

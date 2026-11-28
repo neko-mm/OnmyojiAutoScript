@@ -37,6 +37,8 @@ class OrochiAssets:
 	I_TEAM_PRESET = RuleImage(roi_front=(752,566,48,48), roi_back=(680,540,200,120), threshold=0.8, method="Template matching", file="./tasks/Orochi/o/o_team_preset.png")
 	# 队伍预设弹窗出战按钮 
 	I_PRESET_DEPLOY = RuleImage(roi_front=(676,486,100,34), roi_back=(640,465,170,75), threshold=0.8, method="Template matching", file="./tasks/Orochi/o/o_preset_deploy.png")
+	# 队伍预设御魂不一致确认按钮 
+	I_PRESET_CONFIRM = RuleImage(roi_front=(685,419,136,38), roi_back=(655,400,200,80), threshold=0.8, method="Template matching", file="./tasks/Orochi/o/o_preset_confirm.png")
 
 
 	# List Rule Assets
