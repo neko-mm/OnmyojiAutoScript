@@ -1,4 +1,5 @@
 import json
+import random
 import re
 from pathlib import Path
 from types import SimpleNamespace
@@ -36,7 +37,7 @@ def load_switch_methods():
         line for line in source.splitlines()
         if line.startswith("_PRESET_")
     ]
-    start = source.index("    @staticmethod\n    def _count_preset_slot_purple_pixels(")
+    start = source.index("    @staticmethod\n    def _random_point_in_box(")
     end = source.index("    def run_leader(", start)
     method_src = "\n".join(line[4:] if line.startswith("    ") else line for line in source[start:end].splitlines())
     method_src = method_src.replace("@staticmethod\n", "")
@@ -53,6 +54,7 @@ def load_switch_methods():
         return dist <= threshold
 
     scope = {
+        "random": random,
         "np": np,
         "Timer": FakeTimer,
         "sleep": lambda *_: None,
@@ -61,7 +63,11 @@ def load_switch_methods():
         "logger": SimpleNamespace(info=lambda *_: None, warning=lambda *_: None),
     }
     exec(compile(code, str(SCRIPT_PATH), "exec"), scope)
-    return scope["_count_preset_slot_purple_pixels"], scope["switch_orochi_preset_before_battle"]
+    return (
+        scope["_random_point_in_box"],
+        scope["_count_preset_slot_purple_pixels"],
+        scope["switch_orochi_preset_before_battle"],
+    )
 
 
 class FakeDevice:
@@ -77,7 +83,6 @@ class FakeDevice:
 
     def _render(self):
         self.image[:, :] = (30, 30, 30)
-        # 正常亮度选层页入口区 (752, 566, 800, 614)
         self.image[566:614, 752:800] = (43, 43, 43) if self.dimmed else (106, 106, 106)
         for g in range(1, 8):
             y = 184 + (g - 1) * 51
@@ -99,7 +104,7 @@ class FakeDevice:
             self.selected_slot = 0
             self._render()
         elif control_name.startswith("OROCHI_PRESET_TEAM_"):
-            slot = round((y - (158 + 16)) / 96)
+            slot = (y - 158) // 96
             self.selected_slot = slot
             self._render()
 
@@ -139,7 +144,10 @@ class FakeOrochiTask:
         self.confirm_clicked = 0
         self.marked = []
         self.device = FakeDevice(selected_group=1, selected_slot=0, unselected_rgb=unselected_rgb)
-        self._count_fn, self._switch_fn = load_switch_methods()
+        self._rand_fn, self._count_fn, self._switch_fn = load_switch_methods()
+
+    def _random_point_in_box(self, box):
+        return self._rand_fn(box)
 
     def _count_preset_slot_purple_pixels(self, image, slot_index):
         return self._count_fn(image, slot_index)
@@ -184,6 +192,12 @@ class FakeOrochiTask:
         self.marked.append((battle_key, behavior_name))
 
 
+def assert_in_box(tc, pt, box):
+    x, y = pt
+    x1, y1, x2, y2 = box
+    tc.assertTrue(x1 <= x <= x2 and y1 <= y <= y2, f"point {pt} outside {box}")
+
+
 class OrochiPreBattlePresetTest(unittest.TestCase):
     def test_disabled_preset_skips_immediately(self):
         task = FakeOrochiTask(preset_enable=False)
@@ -198,34 +212,42 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
         self.assertFalse(res)
         self.assertEqual(task.marked, [])
 
-    def test_switch_group_2_team_3_even_with_color_shift(self):
-        task = FakeOrochiTask(
-            preset_enable=True,
-            preset_group=2,
-            preset_team=3,
-            has_new_ui=True,
-            unselected_rgb=(210, 195, 175),
-        )
-        res = task._switch_fn(task)
-        self.assertTrue(res)
-        self.assertFalse(task.popup_open)
-        self.assertEqual(task.device.selected_group, 2)
-        self.assertEqual(task.device.selected_slot, 2)
-        # 左侧分组拉回顶部 2 次 + 右侧队伍拉回顶部 1 次
-        self.assertEqual(
-            task.device.swipes,
-            [
-                ((466, 200), (466, 480)),
-                ((466, 200), (466, 480)),
-                ((730, 200), (730, 440)),
-            ],
-        )
-        self.assertEqual(
-            [c[2] for c in task.device.clicks],
-            ["OROCHI_PRESET_GROUP_2", "OROCHI_PRESET_TEAM_3"],
-        )
-        self.assertEqual(task.device.clicks[-1][:2], (680, 366))
-        self.assertEqual(task.marked, [("orochi_神罚", "preset")])
+    def test_switch_group_2_team_3_randomized_within_safe_boxes(self):
+        group_pts = set()
+        team_pts = set()
+        swipe_starts = set()
+        for _ in range(5):
+            task = FakeOrochiTask(
+                preset_enable=True,
+                preset_group=2,
+                preset_team=3,
+                has_new_ui=True,
+                unselected_rgb=(210, 195, 175),
+            )
+            res = task._switch_fn(task)
+            self.assertTrue(res)
+            self.assertFalse(task.popup_open)
+            self.assertEqual(task.device.selected_group, 2)
+            self.assertEqual(task.device.selected_slot, 2)
+            self.assertEqual(len(task.device.swipes), 3)
+            for p1, p2 in task.device.swipes[:2]:
+                assert_in_box(self, p1, (435, 185, 500, 225))
+                assert_in_box(self, p2, (435, 445, 500, 490))
+                swipe_starts.add(p1)
+            assert_in_box(self, task.device.swipes[2][0], (600, 185, 840, 225))
+            assert_in_box(self, task.device.swipes[2][1], (600, 415, 840, 455))
+            g_click, t_click = task.device.clicks
+            self.assertEqual(g_click[2], "OROCHI_PRESET_GROUP_2")
+            self.assertEqual(t_click[2], "OROCHI_PRESET_TEAM_3")
+            assert_in_box(self, g_click[:2], (428, 221, 506, 249))
+            assert_in_box(self, t_click[:2], (575, 357, 760, 375))
+            group_pts.add(g_click[:2])
+            team_pts.add(t_click[:2])
+            self.assertEqual(task.marked, [("orochi_神罚", "preset")])
+        # 5 次运行点击与滑动起点应具备随机性
+        self.assertGreater(len(group_pts), 1)
+        self.assertGreater(len(team_pts), 1)
+        self.assertGreater(len(swipe_starts), 1)
 
     def test_handles_soul_mismatch_confirm_popup(self):
         task = FakeOrochiTask(
@@ -243,14 +265,18 @@ class OrochiPreBattlePresetTest(unittest.TestCase):
         self.assertFalse(task.device.dimmed)
         self.assertEqual(task.marked, [("orochi_神罚", "preset")])
 
-    def test_switch_team_beyond_three_triggers_swipe(self):
+    def test_switch_team_beyond_three_triggers_randomized_swipe(self):
         task = FakeOrochiTask(preset_enable=True, preset_group=1, preset_team=5, has_new_ui=True)
         res = task._switch_fn(task)
         self.assertTrue(res)
-        # 左侧拉顶 2 次 + 右侧拉顶 1 次 + 右侧上滑 2 次
         self.assertEqual(len(task.device.swipes), 5)
-        self.assertEqual(task.device.swipes[-2:], [((730, 420), (730, 324)), ((730, 420), (730, 324))])
-        self.assertEqual(task.device.clicks[-1], (680, 366, "OROCHI_PRESET_TEAM_5"))
+        for p1, p2 in task.device.swipes[-2:]:
+            assert_in_box(self, p1, (610, 405, 830, 435))
+            dy = p1[1] - p2[1]
+            self.assertTrue(92 <= dy <= 102, f"unexpected swipe dy={dy}")
+            self.assertTrue(abs(p1[0] - p2[0]) <= 18)
+        self.assertEqual(task.device.clicks[-1][2], "OROCHI_PRESET_TEAM_5")
+        assert_in_box(self, task.device.clicks[-1][:2], (575, 357, 760, 375))
         self.assertEqual(task.marked, [("orochi_神罚", "preset")])
 
     def test_wired_into_alone_leader_and_wild(self):

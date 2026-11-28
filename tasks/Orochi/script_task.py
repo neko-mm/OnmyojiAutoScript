@@ -25,25 +25,27 @@ from tasks.Orochi.page import page_orochi
 
 
 # 新版御魂选层页「队伍预设」弹窗布局（1280x720）
-_PRESET_GROUP_CLICK_X = 466
+_PRESET_GROUP_CLICK_X_RANGE = (428, 506)
+_PRESET_GROUP_CLICK_Y_JITTER = 14
 _PRESET_GROUP_SAMPLE_X = 420
 _PRESET_GROUP_START_Y = 184
 _PRESET_GROUP_STEP_Y = 51
 _PRESET_GROUP_SELECTED_COLOR = (249.0, 215.0, 156.0)
 _PRESET_GROUP_SELECTED_THRESHOLD = 28
-_PRESET_GROUP_SCROLL_TOP_START = (466, 200)
-_PRESET_GROUP_SCROLL_TOP_END = (466, 480)
+_PRESET_GROUP_SCROLL_TOP_START_BOX = (435, 185, 500, 225)
+_PRESET_GROUP_SCROLL_TOP_END_BOX = (435, 445, 500, 490)
 
-_PRESET_TEAM_CLICK_X = 680
+_PRESET_TEAM_CLICK_X_RANGE = (575, 760)
+_PRESET_TEAM_TITLE_Y_RANGE = (7, 25)
 _PRESET_TEAM_TOP_Y = 158
-_PRESET_TEAM_TITLE_OFFSET_Y = 16
 _PRESET_TEAM_STEP_Y = 96
 _PRESET_TEAM_VISIBLE_SLOTS = 3
 _PRESET_TEAM_PURPLE_THRESHOLD = 80
-_PRESET_TEAM_SCROLL_TOP_START = (730, 200)
-_PRESET_TEAM_SCROLL_TOP_END = (730, 440)
-_PRESET_TEAM_SWIPE_START = (730, 420)
-_PRESET_TEAM_SWIPE_END = (730, 324)
+_PRESET_TEAM_SCROLL_TOP_START_BOX = (600, 185, 840, 225)
+_PRESET_TEAM_SCROLL_TOP_END_BOX = (600, 415, 840, 455)
+_PRESET_TEAM_SWIPE_UP_START_BOX = (610, 405, 830, 435)
+_PRESET_TEAM_SWIPE_UP_DY_RANGE = (92, 102)
+_PRESET_TEAM_SWIPE_UP_DX_JITTER = 18
 _PRESET_ENTRY_BRIGHTNESS_AREA = (752, 566, 800, 614)
 _PRESET_ENTRY_NORMAL_BRIGHTNESS = 75.0
 
@@ -142,6 +144,11 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
         return False
 
     @staticmethod
+    def _random_point_in_box(box: tuple[int, int, int, int]) -> tuple[int, int]:
+        x1, y1, x2, y2 = box
+        return random.randint(x1, x2), random.randint(y1, y2)
+
+    @staticmethod
     def _count_preset_slot_purple_pixels(image, slot_index: int) -> int:
         """统计指定队伍卡片左右边框的紫色高亮像素数，避开上下相邻卡片交界。"""
         y_top = _PRESET_TEAM_TOP_Y + slot_index * _PRESET_TEAM_STEP_Y
@@ -197,12 +204,21 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
         # 2. 先将左侧分组列表向下滑回最顶部，确保第 1 格为「常用」、第 2 格为「挖土」等原始顺序
         for _ in range(2):
-            self.device.swipe(p1=_PRESET_GROUP_SCROLL_TOP_START, p2=_PRESET_GROUP_SCROLL_TOP_END)
+            self.device.swipe(
+                p1=self._random_point_in_box(_PRESET_GROUP_SCROLL_TOP_START_BOX),
+                p2=self._random_point_in_box(_PRESET_GROUP_SCROLL_TOP_END_BOX),
+            )
             sleep(0.4)
 
         # 3. 正向校验并选中左侧预设分组（1~7）：确认采样区变为暖金色选中态
         group_y = _PRESET_GROUP_START_Y + (preset_group - 1) * _PRESET_GROUP_STEP_Y
         group_sample_area = (_PRESET_GROUP_SAMPLE_X, group_y - 4, _PRESET_GROUP_SAMPLE_X + 10, group_y + 5)
+        group_click_box = (
+            _PRESET_GROUP_CLICK_X_RANGE[0],
+            group_y - _PRESET_GROUP_CLICK_Y_JITTER,
+            _PRESET_GROUP_CLICK_X_RANGE[1],
+            group_y + _PRESET_GROUP_CLICK_Y_JITTER,
+        )
         group_timer = Timer(4).start()
         group_selected = False
         last_group_color = None
@@ -216,14 +232,18 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 group_selected = True
                 logger.info(f'已确认选中预设分组 {preset_group}（RGB={[round(c, 1) for c in last_group_color]}）')
                 break
-            self.device.click(x=_PRESET_GROUP_CLICK_X, y=group_y, control_name=f'OROCHI_PRESET_GROUP_{preset_group}')
+            gx, gy = self._random_point_in_box(group_click_box)
+            self.device.click(x=gx, y=gy, control_name=f'OROCHI_PRESET_GROUP_{preset_group}')
             sleep(0.45)
 
         if group_selected:
             sleep(0.35)
 
         # 4. 将右侧队伍列表先拉回最顶部，避免上次停留在同一分组且已下滑导致槽位错位
-        self.device.swipe(p1=_PRESET_TEAM_SCROLL_TOP_START, p2=_PRESET_TEAM_SCROLL_TOP_END)
+        self.device.swipe(
+            p1=self._random_point_in_box(_PRESET_TEAM_SCROLL_TOP_START_BOX),
+            p2=self._random_point_in_box(_PRESET_TEAM_SCROLL_TOP_END_BOX),
+        )
         sleep(0.4)
 
         # 5. 定位并选中右侧预设队伍（1~3 直接点标题栏，超过 3 队向上滑动后点第 3 槽位）
@@ -233,11 +253,23 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             swipe_steps = preset_team - _PRESET_TEAM_VISIBLE_SLOTS
             logger.info(f'目标队伍 {preset_team} 超过前 {_PRESET_TEAM_VISIBLE_SLOTS} 队，右侧列表上滑 {swipe_steps} 步')
             for _ in range(swipe_steps):
-                self.device.swipe(p1=_PRESET_TEAM_SWIPE_START, p2=_PRESET_TEAM_SWIPE_END)
+                sx, sy = self._random_point_in_box(_PRESET_TEAM_SWIPE_UP_START_BOX)
+                ex = max(
+                    _PRESET_TEAM_SWIPE_UP_START_BOX[0],
+                    min(_PRESET_TEAM_SWIPE_UP_START_BOX[2], sx + random.randint(-_PRESET_TEAM_SWIPE_UP_DX_JITTER, _PRESET_TEAM_SWIPE_UP_DX_JITTER)),
+                )
+                ey = sy - random.randint(_PRESET_TEAM_SWIPE_UP_DY_RANGE[0], _PRESET_TEAM_SWIPE_UP_DY_RANGE[1])
+                self.device.swipe(p1=(sx, sy), p2=(ex, ey))
                 sleep(0.4)
             slot_index = _PRESET_TEAM_VISIBLE_SLOTS - 1
 
-        team_click_y = _PRESET_TEAM_TOP_Y + slot_index * _PRESET_TEAM_STEP_Y + _PRESET_TEAM_TITLE_OFFSET_Y
+        team_y_top = _PRESET_TEAM_TOP_Y + slot_index * _PRESET_TEAM_STEP_Y
+        team_click_box = (
+            _PRESET_TEAM_CLICK_X_RANGE[0],
+            team_y_top + _PRESET_TEAM_TITLE_Y_RANGE[0],
+            _PRESET_TEAM_CLICK_X_RANGE[1],
+            team_y_top + _PRESET_TEAM_TITLE_Y_RANGE[1],
+        )
         team_timer = Timer(4).start()
         team_selected = False
         last_purple_px = 0
@@ -251,7 +283,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
                 team_selected = True
                 logger.info(f'已确认选中队伍 {preset_team}（槽位 {slot_index + 1}，紫色边框像素={last_purple_px}）')
                 break
-            self.device.click(x=_PRESET_TEAM_CLICK_X, y=team_click_y, control_name=f'OROCHI_PRESET_TEAM_{preset_team}')
+            tx, ty = self._random_point_in_box(team_click_box)
+            self.device.click(x=tx, y=ty, control_name=f'OROCHI_PRESET_TEAM_{preset_team}')
             sleep(0.45)
 
         if not team_selected:
